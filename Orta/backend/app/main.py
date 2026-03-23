@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
-from auth.Orta.backend.app.database import init_db
+from Orta.backend.app.core.database import init_db
 
 
 
