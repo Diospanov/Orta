@@ -1,36 +1,24 @@
 from contextlib import asynccontextmanager
-import logging
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from sqlalchemy.exc import IntegrityError
-from Orta.backend.app.core.database import init_db
-
-
+from fastapi import FastAPI
+from app.core.database import engine
+from app.models.base import Base
+from app.models import user, team, team_member, join_request
+from app.routers.auth import router as auth_router
+from app.routers.join_reqs import router as join_request_router
+from app.routers.teams import router as teams_router
+from app.routers.user import router as users_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db()
-    print("Database initialized")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
-    print("App shutting down")
 
+app = FastAPI(title="Orta API", lifespan=lifespan)
 
-app = FastAPI(lifespan=lifespan)
+app.include_router(auth_router)
+app.include_router(users_router)
+app.include_router(teams_router)
+app.include_router(join_request_router)
 
-logger = logging.getLogger("uvicorn.error")
-
-@app.exception_handler(IntegrityError)
-async def integrity_error_handler(request: Request, exc: IntegrityError):
-    return JSONResponse(
-        status_code=400,
-        content={"detail": "Database integrity error", "error": str(exc.orig)},
-    )
-
-@app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception):
-    logger.exception("Unhandled error: %s", exc)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"},
-    )
 
