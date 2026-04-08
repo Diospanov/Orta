@@ -7,6 +7,7 @@ from app.routers.auth import router as auth_router
 from app.routers.join_reqs import router as join_request_router
 from app.routers.teams import router as teams_router
 from app.routers.user import router as users_router
+from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -15,6 +16,14 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="Orta API", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth_router)
 app.include_router(users_router)
