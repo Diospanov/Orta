@@ -1,10 +1,12 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, ForeignKey, Enum, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 from .enums import JoinRequestStatus
-from .team import Team
-from .user import User
+if TYPE_CHECKING:
+    from .team import Team
+    from .user import User
 
 class JoinRequest(Base):
     __tablename__ = "join_requests"

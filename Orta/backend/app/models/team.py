@@ -1,12 +1,13 @@
 from datetime import datetime
-from typing import List
+from typing import List, TYPE_CHECKING
 from sqlalchemy import String, Text, Integer, Boolean, DateTime, ForeignKey, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 from .enums import TeamStatus
-from .user import User
-from .team_member import TeamMember
-from .join_req import JoinRequest
+if TYPE_CHECKING:
+    from .join_req import JoinRequest
+    from .team_member import TeamMember
+    from .user import User
 
 class Team(Base):
     __tablename__ = "teams"

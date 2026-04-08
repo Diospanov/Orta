@@ -138,11 +138,19 @@ class TeamService:
         if not membership:
             raise HTTPException(status_code=404, detail="Sen bul team member emessin")
 
+        owner_result = await db.execute(
+            select(TeamMember).where(TeamMember.team_id == team_id, TeamMember.role == TeamRole.OWNER)
+        )
+        
+        owners = owner_result.scalar_one_or_none()
+
         if membership.role == TeamRole.OWNER:
-            raise HTTPException(
-                status_code=400,
-                detail="Owner cannot leave the team without transferring ownership or deleting the team",
-            )
+            if len(owners)<2:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Owner cannot leave the team without transferring ownership or deleting the team",
+                )
+
 
         await db.delete(membership)
         await db.commit()

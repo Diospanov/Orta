@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.core.database import engine
 from app.models.base import Base
-from app.models import user, team, team_member, join_request
+from app.models import user, team, team_member, join_req
 from app.routers.auth import router as auth_router
 from app.routers.join_reqs import router as join_request_router
 from app.routers.teams import router as teams_router
