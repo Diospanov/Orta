@@ -1,14 +1,22 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { loginUser } from "../api";
 
-export default function Login() {
-
+  export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // потом тут будет backend login
-    // пока просто переходим на profile
+    try {
+      const data = await loginUser(email, password);
+      localStorage.setItem("token", data.access_token);
+      console.log("Login success:", data);
+    } catch (error) {
+      console.error("Login error:", error.message);
+    }
     navigate("/profile");
   };
 
@@ -25,12 +33,14 @@ export default function Login() {
           Please enter your details
         </p>
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleSubmit}>
 
           <label>Email</label>
           <input
             type="email"
             placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full mb-5 mt-2 p-3 rounded-xl bg-transparent border border-teal-400 outline-none"
           />
 
@@ -38,6 +48,8 @@ export default function Login() {
           <input
             type="password"
             placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="w-full mb-3 mt-2 p-3 rounded-xl bg-transparent border border-teal-400 outline-none"
           />
 
