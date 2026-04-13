@@ -30,6 +30,7 @@ Orta/
 │   │   └── main.jsx
 │   ├── package.json
 │   └── vite.config.js
+```text
 
 ## Features
 
