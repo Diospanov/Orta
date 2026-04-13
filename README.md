@@ -30,7 +30,7 @@ Orta/
 │   │   └── main.jsx
 │   ├── package.json
 │   └── vite.config.js
-```text
+```
 
 ## Features
 
@@ -50,7 +50,7 @@ Orta/
 ```bash
 git clone https://github.com/K-Abdulazym/Orta.git
 cd Orta/Orta
-
+```
 ## Usage Instructions
 
 1. Install requirements
