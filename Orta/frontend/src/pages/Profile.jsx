@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
@@ -183,6 +185,44 @@ function TeamMiniCard({ team }) {
 }
 
 export default function Profile() {
+  const { user: profile, isChecking, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const getInitials = () => {
+    if (!profile?.full_name) {
+      return profile?.username?.slice(0, 2).toUpperCase() || "U";
+    }
+
+    const parts = profile.full_name.split(" ").filter(Boolean);
+    return parts.slice(0, 2).map((p) => p[0].toUpperCase()).join("");
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#18a999] text-white text-2xl">
+        Loading profile...
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#18a999] text-white text-2xl">
+        Failed to load profile
+      </div>
+    );
+  }
+
   return (
     <>
       <div
@@ -201,14 +241,14 @@ export default function Profile() {
             <aside className="space-y-6 xl:col-span-1">
               <div className="rounded-[28px] border border-[#d8d2a0] bg-[#0f6f95]/95 p-6 text-white shadow-[0_8px_30px_rgba(0,0,0,0.18)]">
                 <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 border-[#f5efbf] bg-[#1752d2] text-5xl font-bold">
-                  RB
+                  {getInitials()}
                 </div>
 
                 <h2 className="mt-4 text-center text-[22px] font-semibold">
-                  Rakhat B.
+                  {profile.full_name || profile.username}
                 </h2>
                 <p className="mt-1 text-center text-sm text-white/70">
-                  Information Systems Student
+                  {profile.role}
                 </p>
 
                 <div className="my-5 border-t border-[#d8d2a0]/70" />
@@ -223,8 +263,10 @@ export default function Profile() {
                     <div className="mt-1 text-xs text-white/70">Tasks</div>
                   </div>
                   <div>
-                    <div className="text-4xl font-bold text-[#f5efbf]">89%</div>
-                    <div className="mt-1 text-xs text-white/70">Success</div>
+                    <div className="text-4xl font-bold text-[#f5efbf]">
+                      {profile.is_active ? "Yes" : "No"}
+                    </div>
+                    <div className="mt-1 text-xs text-white/70">Active</div>
                   </div>
                 </div>
 
@@ -232,6 +274,13 @@ export default function Profile() {
 
                 <button className="w-full rounded-xl bg-[#10c7b0] px-4 py-3 font-semibold text-white transition hover:bg-[#0eb39e]">
                   + Create New Team
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="mt-3 w-full rounded-xl bg-[#0d6789] px-4 py-3 font-semibold text-white transition hover:bg-[#0b5c7a]"
+                >
+                  Log out
                 </button>
 
                 <div className="mt-8">
@@ -292,28 +341,6 @@ export default function Profile() {
                     ))}
                   </div>
                 </div>
-
-                <div className="mt-8">
-                  <h3 className="mb-4 text-[22px] font-semibold">📊 Platform Stats</h3>
-                  <div className="space-y-2 text-sm text-white/85">
-                    <div className="flex justify-between">
-                      <span>Active Teams:</span>
-                      <span className="text-[#f5efbf]">2,847</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Online Users:</span>
-                      <span className="text-[#f5efbf]">1,234</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Tasks Completed:</span>
-                      <span className="text-[#f5efbf]">48,921</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>New Teams Today:</span>
-                      <span className="text-[#f5efbf]">156</span>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               <div className="flex justify-center">
@@ -332,18 +359,22 @@ export default function Profile() {
                     <div>
                       <div className="text-sm text-white/60">Full Name</div>
                       <div className="mt-2 text-[24px] font-medium">
-                        Rakhat Bitimbay
+                        {profile.full_name || "-"}
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-sm text-white/60">Location</div>
-                      <div className="mt-2 text-[24px] font-medium">Aktobe, AK</div>
+                      <div className="text-sm text-white/60">Username</div>
+                      <div className="mt-2 text-[24px] font-medium">
+                        {profile.username}
+                      </div>
                     </div>
 
                     <div>
-                      <div className="text-sm text-white/60">Time Zone</div>
-                      <div className="mt-2 text-[24px] font-medium">PST (UTC+5)</div>
+                      <div className="text-sm text-white/60">Role</div>
+                      <div className="mt-2 text-[24px] font-medium">
+                        {profile.role}
+                      </div>
                     </div>
                   </div>
 
@@ -351,19 +382,21 @@ export default function Profile() {
                     <div>
                       <div className="text-sm text-white/60">Email</div>
                       <div className="mt-2 text-[24px] font-medium">
-                        rakhat.b@orta.edu.kz
+                        {profile.email}
                       </div>
                     </div>
 
                     <div>
                       <div className="text-sm text-white/60">Joined Orta</div>
-                      <div className="mt-2 text-[24px] font-medium">March 2026</div>
+                      <div className="mt-2 text-[24px] font-medium">
+                        {formatDate(profile.created_at)}
+                      </div>
                     </div>
 
                     <div>
-                      <div className="text-sm text-white/60">Availability</div>
+                      <div className="text-sm text-white/60">Account Status</div>
                       <div className="mt-2 text-[24px] font-medium">
-                        15-20 hours/week
+                        {profile.is_active ? "Active" : "Inactive"}
                       </div>
                     </div>
                   </div>
@@ -372,11 +405,7 @@ export default function Profile() {
                 <div className="mt-10">
                   <div className="text-sm text-white/60">Bio</div>
                   <p className="mt-3 max-w-5xl text-lg leading-8 text-white/90">
-                    Information Systems student passionate about machine learning
-                    and web development. I enjoy collaborating on challenging
-                    projects and helping others learn. Currently working on a
-                    research project about NLP algorithms. Looking for teammates
-                    to build meaningful projects together!
+                    Welcome to your Orta profile page.
                   </p>
                 </div>
               </Panel>

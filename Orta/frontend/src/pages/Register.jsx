@@ -1,17 +1,42 @@
 import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { registerUser } from "../api";
 
 export default function Register() {
   const navigate = useNavigate();
 
-  const handleRegister = (e) => {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [surname, setSurname] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleRegister = async (e) => {
     e.preventDefault();
-    navigate("/profile");
+    setErrorMessage("");
+
+    const full_name = `${name} ${surname}`.trim();
+
+    try {
+      const data = await registerUser({
+        username: nickname,
+        email,
+        password,
+        full_name: full_name || null,
+      });
+
+      console.log("Register success:", data);
+      navigate("/login");
+    } catch (error) {
+      console.error("Register error:", error.message);
+      setErrorMessage(error.message);
+    }
   };
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0e6f92]">
       <div className="mx-auto flex min-h-screen max-w-[1500px] items-center justify-between px-6 py-8 md:px-10">
-        
         <div className="hidden w-[42%] items-end justify-start lg:flex">
           <img
             src="/register-character.png"
@@ -29,7 +54,7 @@ export default function Register() {
             </h1>
 
             <p className="mt-6 text-center text-lg text-white/90 md:text-2xl">
-              Fill in your peronal details to access teams and lobbies
+              Fill in your personal details to access teams and lobbies
             </p>
 
             <form onSubmit={handleRegister} className="mt-10">
@@ -38,6 +63,8 @@ export default function Register() {
                 <input
                   type="email"
                   placeholder="230107142@sdu.edu.kz"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="h-[78px] w-full rounded-[22px] border-[4px] border-[#0d6789] bg-transparent px-6 text-2xl text-white placeholder:text-white/45 outline-none"
                 />
               </div>
@@ -48,6 +75,8 @@ export default function Register() {
                   <input
                     type="text"
                     placeholder="Rakhat"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     className="h-[78px] w-full rounded-[22px] border-[4px] border-[#0d6789] bg-transparent px-6 text-2xl text-white placeholder:text-white/45 outline-none"
                   />
                 </div>
@@ -57,6 +86,8 @@ export default function Register() {
                   <input
                     type="text"
                     placeholder="Bitimbay"
+                    value={surname}
+                    onChange={(e) => setSurname(e.target.value)}
                     className="h-[78px] w-full rounded-[22px] border-[4px] border-[#0d6789] bg-transparent px-6 text-2xl text-white placeholder:text-white/45 outline-none"
                   />
                 </div>
@@ -68,6 +99,8 @@ export default function Register() {
                   <input
                     type="text"
                     placeholder="Enter your nickname"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
                     className="h-[78px] w-full rounded-[22px] border-[4px] border-[#0d6789] bg-transparent px-6 text-2xl text-white placeholder:text-white/45 outline-none"
                   />
                 </div>
@@ -77,10 +110,16 @@ export default function Register() {
                   <input
                     type="password"
                     placeholder="Enter a password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="h-[78px] w-full rounded-[22px] border-[4px] border-[#0d6789] bg-transparent px-6 text-2xl text-white placeholder:text-white/45 outline-none"
                   />
                 </div>
               </div>
+
+              {errorMessage && (
+                <p className="mt-4 text-lg text-red-200">{errorMessage}</p>
+              )}
 
               <button
                 type="submit"

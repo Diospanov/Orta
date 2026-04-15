@@ -6,18 +6,60 @@ import BrowseTeams from "./pages/BrowseTeams";
 import MyTeams from "./pages/MyTeams";
 import CreateTeam from "./pages/CreateTeam";
 import Profile from "./pages/Profile";
+import ProtectedRoute from "./components/ProtectedRoute";
+import PublicRoute from "./components/PublicRoute";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Main />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/browse-teams" element={<BrowseTeams />} />
-        <Route path="/my-teams" element={<MyTeams />} />
-        <Route path="/create-team" element={<CreateTeam />} />
-        <Route path="/profile" element={<Profile />} />
+
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/my-teams"
+          element={
+            <ProtectedRoute>
+              <MyTeams />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/create-team"
+          element={
+            <ProtectedRoute>
+              <CreateTeam />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
