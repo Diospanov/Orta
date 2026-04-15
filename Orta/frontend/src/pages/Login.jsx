@@ -20,65 +20,83 @@ export default function Login() {
       await login();
       navigate("/profile");
     } catch (error) {
-      console.error("Login error:", error.message);
       setErrorMessage(error.message);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#18a999] flex items-center justify-center relative overflow-hidden">
-      <div className="bg-[#0f5f78] p-10 rounded-3xl w-[420px] text-white shadow-xl">
-        <h1 className="text-4xl font-bold mb-2 text-center">Welcome back</h1>
+    <div className="min-h-screen overflow-hidden bg-[#18b3a6]">
+      <div className="mx-auto flex min-h-screen max-w-[1500px] items-center justify-between px-6 py-8 md:px-10 translate-x-90">
+        <div className="flex w-full items-center justify-center lg:w-1/2">  
+          <div className="w-full max-w-[620px] rounded-[30px] bg-[#0f6784] px-10 py-12 text-white shadow-[0_10px_40px_rgba(0,0,0,0.18)] md:px-14">
+            <h1 className="text-center text-5xl font-medium uppercase leading-[1.02] tracking-[0.08em] md:text-6xl">
+              Welcome back
+              <br />
+              to <span className="font-extrabold">Orta</span>
+            </h1>
 
-        <p className="text-center mb-8 opacity-80">
-          Please enter your details
-        </p>
+            <p className="mt-5 text-center text-sm text-white/90 md:text-base">
+              Welcome back! Please enter your details
+            </p>
 
-        <form onSubmit={handleSubmit}>
-          <label>Email</label>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full mb-5 mt-2 p-3 rounded-xl bg-transparent border border-teal-400 outline-none"
+            <form onSubmit={handleSubmit} className="mt-10">
+              <div>
+                <label className="mb-2 block text-lg font-medium">Email</label>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-[56px] w-full rounded-[14px] border-2 border-[#11bfd3] bg-transparent px-4 text-base text-white placeholder:text-white/45 outline-none"
+                />
+              </div>
+
+              <div className="mt-5">
+                <label className="mb-2 block text-lg font-medium">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-[56px] w-full rounded-[14px] border-2 border-[#11bfd3] bg-transparent px-4 text-base text-white placeholder:text-white/45 outline-none"
+                />
+              </div>
+
+              <p className="mt-5 text-right text-base font-medium text-white/95">
+                Forgot your password?
+              </p>
+
+              {errorMessage && (
+                <p className="mt-4 text-sm text-red-200">{errorMessage}</p>
+              )}
+
+              <button
+                type="submit"
+                className="mt-6 h-[58px] w-full rounded-[14px] bg-[#19c7b2] text-xl font-semibold text-white transition hover:bg-[#16b39f]"
+              >
+                Log in
+              </button>
+
+              <p className="mt-6 text-center text-base text-white/85">
+                Don’t have an account?{" "}
+                <Link to="/register" className="font-semibold text-white">
+                  Create one
+                </Link>
+              </p>
+            </form>
+          </div>
+        </div>
+
+        <div className="hidden lg:flex lg:w-1/2 items-end justify-center overflow-hidden">
+          <img
+            src="/leaf-character.png"
+            alt="leaf character"
+            className="max-h-[76vh] w-auto object-contain translate-x-15 translate-y-2"
           />
-
-          <label>Password</label>
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full mb-3 mt-2 p-3 rounded-xl bg-transparent border border-teal-400 outline-none"
-          />
-
-          <p className="text-sm mb-6 opacity-70">Forgot your password?</p>
-
-          {errorMessage && (
-            <p className="mb-4 text-sm text-red-200">{errorMessage}</p>
-          )}
-
-          <button
-            type="submit"
-            className="w-full bg-[#19c1a7] py-3 rounded-xl text-lg font-semibold hover:bg-[#15a892]"
-          >
-            Log in
-          </button>
-        </form>
-
-        <p className="text-center mt-6 text-sm opacity-80">
-          Don’t have an account?{" "}
-          <Link to="/register" className="underline">
-            Create one
-          </Link>
-        </p>
+        </div>
       </div>
-
-      <img
-        src="/leaf-character.png"
-        className="absolute right-10 bottom-0 w-[350px]"
-      />
     </div>
   );
 }

@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_user_optional
 from app.models.user import User
 from app.schemas.team import (
     MemberRoleUpdateSchema,
@@ -20,12 +20,29 @@ async def create_team(data: TeamCreateSchema,db: Annotated[AsyncSession, Depends
     return await team_service.create_team(db, current_user, data)
 
 @router.get("/", response_model=list[TeamResponse])
-async def get_teams(db: Annotated[AsyncSession, Depends(get_db)],search: str | None = Query(default=None),):
-    return await team_service.get_all_teams(db, search)
+async def get_teams(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User | None, Depends(get_current_user_optional)],
+    search: str | None = Query(default=None),
+):
+    return await team_service.get_all_teams(db, search, current_user)
+
+
+@router.get("/me", response_model=list[TeamResponse])
+async def get_my_teams(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    return await team_service.get_my_teams(db, current_user)
+
 
 @router.get("/{team_id}", response_model=TeamResponse)
-async def get_team(team_id: int,db: Annotated[AsyncSession, Depends(get_db)],):
-    return await team_service.get_team_by_id(db, team_id)
+async def get_team(
+    team_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User | None, Depends(get_current_user_optional)],
+):
+    return await team_service.get_team_by_id(db, team_id, current_user)
 
 @router.get("/{team_id}/members", response_model=list[TeamMemberResponse])
 async def get_team_members(team_id: int, db: Annotated[AsyncSession, Depends(get_db)],):

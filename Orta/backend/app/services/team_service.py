@@ -7,9 +7,62 @@ from app.models.join_req import JoinRequest
 from app.models.team import Team
 from app.models.team_member import TeamMember
 from app.models.user import User
-from app.schemas.team import TeamCreateSchema, TeamUpdateSchema
+from app.schemas.team import TeamCreateSchema, TeamUpdateSchema, TeamResponse
+from sqlalchemy.orm import selectinload
 
 class TeamService:
+    async def _build_team_response(
+        self,
+        db: AsyncSession,
+        team: Team,
+        current_user: User | None = None,
+    ) -> TeamResponse:
+        member_count_result = await db.execute(
+            select(func.count(TeamMember.id)).where(TeamMember.team_id == team.id)
+        )
+        member_count = member_count_result.scalar_one()
+
+        is_member = False
+        if current_user:
+            membership_result = await db.execute(
+                select(TeamMember).where(
+                    TeamMember.team_id == team.id,
+                    TeamMember.user_id == current_user.id,
+                )
+            )
+            is_member = membership_result.scalar_one_or_none() is not None
+
+        owner_name = None
+        if team.owner:
+            owner_name = team.owner.username
+
+        return TeamResponse(
+            id=team.id,
+            name=team.name,
+            description=team.description,
+            owner_id=team.owner_id,
+            owner_name=owner_name,
+            max_members=team.max_members,
+            member_count=member_count,
+            is_public=team.is_public,
+            status=team.status,
+            created_at=team.created_at,
+            is_member=is_member,
+        )
+    
+    async def _get_team_model(self, db: AsyncSession, team_id: int) -> Team:
+        result = await db.execute(
+            select(Team)
+            .options(selectinload(Team.owner))
+            .where(Team.id == team_id)
+        )
+        team = result.scalar_one_or_none()
+
+        if not team:
+            raise HTTPException(status_code=404, detail="Team tabylmad")
+
+        return team
+    
     async def create_team(self, db: AsyncSession, current_user: User, data: TeamCreateSchema):
         existing_team = await db.execute(select(Team).where(Team.name == data.name))
         if existing_team.scalar_one_or_none():
@@ -33,26 +86,70 @@ class TeamService:
         db.add(membership)
 
         await db.commit()
-        await db.refresh(team)
-        return team
+        await db.refresh(team, attribute_names=["owner"])
+        return await self._build_team_response(db, team, current_user)
 
-    async def get_all_teams(self, db: AsyncSession, search: str | None = None):
-        query = select(Team).where(Team.status == TeamStatus.ACTIVE)
+    async def get_all_teams(
+        self,
+        db: AsyncSession,
+        search: str | None = None,
+        current_user: User | None = None,
+    ):
+        query = (
+            select(Team)
+            .options(selectinload(Team.owner))
+            .where(Team.status == TeamStatus.ACTIVE)
+        )
 
         if search:
             query = query.where(Team.name.ilike(f"%{search}%"))
 
         result = await db.execute(query)
-        return result.scalars().all()
+        teams = result.scalars().all()
 
-    async def get_team_by_id(self, db: AsyncSession, team_id: int):
-        result = await db.execute(select(Team).where(Team.id == team_id))
+        return [
+            await self._build_team_response(db, team, current_user)
+            for team in teams
+        ]
+    
+
+    async def get_my_teams(
+        self,
+        db: AsyncSession,
+        current_user: User,
+    ):
+        result = await db.execute(
+            select(Team)
+            .join(TeamMember, TeamMember.team_id == Team.id)
+            .options(selectinload(Team.owner))
+            .where(TeamMember.user_id == current_user.id)
+            .where(Team.status == TeamStatus.ACTIVE)
+        )
+        teams = result.scalars().unique().all()
+
+        return [
+            await self._build_team_response(db, team, current_user)
+            for team in teams
+        ]
+
+
+    async def get_team_by_id(
+        self,
+        db: AsyncSession,
+        team_id: int,
+        current_user: User | None = None,
+    ):
+        result = await db.execute(
+            select(Team)
+            .options(selectinload(Team.owner))
+            .where(Team.id == team_id)
+        )
         team = result.scalar_one_or_none()
 
         if not team:
             raise HTTPException(status_code=404, detail="Team tabylmad")
 
-        return team
+        return await self._build_team_response(db, team, current_user)
 
     async def list_team_members(self, db: AsyncSession, team_id: int):
         await self.get_team_by_id(db, team_id)
@@ -63,7 +160,7 @@ class TeamService:
         return result.scalars().all()
 
     async def update_team(self, db: AsyncSession, current_user: User, team_id: int, data: TeamUpdateSchema):
-        team = await self.get_team_by_id(db, team_id)
+        team = await self._get_team_model(db, team_id)
 
         if team.owner_id != current_user.id and current_user.role != UserRole.ADMIN:
             raise HTTPException(status_code=403, detail="Sende permission jok updateqa")
@@ -73,11 +170,11 @@ class TeamService:
             setattr(team, field, value)
 
         await db.commit()
-        await db.refresh(team)
-        return team
+        await db.refresh(team, attribute_names=["owner"])
+        return await self._build_team_response(db, team, current_user)
 
     async def join_team(self, db: AsyncSession, current_user: User, team_id: int):
-        team = await self.get_team_by_id(db, team_id)
+        team = await self._get_team_model(db, team_id)
 
         member_result = await db.execute(
             select(TeamMember).where(
@@ -132,24 +229,25 @@ class TeamService:
         return {"message": "Join request sent", "join_request": join_request}
 
     async def leave_team(self, db: AsyncSession, current_user: User, team_id: int):
-        team = await self.get_team_by_id(db, team_id)
+        team = await self._get_team_model(db, team_id)
 
         membership = await get_team_membership(db, current_user.id, team_id)
         if not membership:
             raise HTTPException(status_code=404, detail="Sen bul team member emessin")
 
-        owner_result = await db.execute(
-            select(TeamMember).where(TeamMember.team_id == team_id, TeamMember.role == TeamRole.OWNER)
+        owner_count_result = await db.execute(
+            select(func.count(TeamMember.id)).where(
+                TeamMember.team_id == team_id,
+                TeamMember.role == TeamRole.OWNER,
+            )
         )
-        
-        owners = owner_result.scalar_one_or_none()
+        owner_count = owner_count_result.scalar_one()
 
-        if membership.role == TeamRole.OWNER:
-            if len(owners)<2:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Owner cannot leave the team without transferring ownership or deleting the team",
-                )
+        if membership.role == TeamRole.OWNER and owner_count < 2:
+            raise HTTPException(
+                status_code=400,
+                detail="Owner cannot leave the team without transferring ownership or deleting the team",
+            )
 
 
         await db.delete(membership)
