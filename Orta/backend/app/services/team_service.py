@@ -1,6 +1,8 @@
 from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from app.core.dependencies import ensure_team_manager, ensure_team_owner, get_team_membership
 from app.models.enums import JoinRequestStatus, TeamRole, TeamStatus, UserRole
 from app.models.join_req import JoinRequest
@@ -8,7 +10,7 @@ from app.models.team import Team
 from app.models.team_member import TeamMember
 from app.models.user import User
 from app.schemas.team import TeamCreateSchema, TeamUpdateSchema, TeamResponse
-from sqlalchemy.orm import selectinload
+
 
 class TeamService:
     async def _build_team_response(
@@ -32,24 +34,28 @@ class TeamService:
             )
             is_member = membership_result.scalar_one_or_none() is not None
 
-        owner_name = None
-        if team.owner:
-            owner_name = team.owner.username
+        owner_name = team.owner.username if team.owner else None
 
         return TeamResponse(
             id=team.id,
             name=team.name,
             description=team.description,
+            category=team.category,
             owner_id=team.owner_id,
             owner_name=owner_name,
             max_members=team.max_members,
             member_count=member_count,
             is_public=team.is_public,
+            conditions_to_join=team.conditions_to_join or [],
+            communication_method=team.communication_method,
+            meeting_frequency=team.meeting_frequency,
+            timezone=team.timezone,
+            collaboration_method=team.collaboration_method,
             status=team.status,
             created_at=team.created_at,
             is_member=is_member,
         )
-    
+
     async def _get_team_model(self, db: AsyncSession, team_id: int) -> Team:
         result = await db.execute(
             select(Team)
@@ -62,18 +68,26 @@ class TeamService:
             raise HTTPException(status_code=404, detail="Team tabylmad")
 
         return team
-    
+
     async def create_team(self, db: AsyncSession, current_user: User, data: TeamCreateSchema):
         existing_team = await db.execute(select(Team).where(Team.name == data.name))
         if existing_team.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="Team with this name bos emes")
+            raise HTTPException(status_code=400, detail="Team with this name already exists")
+
+        cleaned_conditions = [item.strip() for item in data.conditions_to_join if item.strip()]
 
         team = Team(
             name=data.name,
             description=data.description,
+            category=data.category,
             owner_id=current_user.id,
             max_members=data.max_members,
             is_public=data.is_public,
+            conditions_to_join=cleaned_conditions,
+            communication_method=data.communication_method,
+            meeting_frequency=data.meeting_frequency,
+            timezone=data.timezone,
+            collaboration_method=data.collaboration_method,
         )
         db.add(team)
         await db.flush()
@@ -84,6 +98,44 @@ class TeamService:
             role=TeamRole.OWNER,
         )
         db.add(membership)
+
+        await db.commit()
+        await db.refresh(team, attribute_names=["owner"])
+        return await self._build_team_response(db, team, current_user)
+
+    async def update_team(
+        self,
+        db: AsyncSession,
+        current_user: User,
+        team_id: int,
+        data: TeamUpdateSchema,
+    ):
+        team = await self._get_team_model(db, team_id)
+
+        if team.owner_id != current_user.id and current_user.role != UserRole.ADMIN:
+            raise HTTPException(status_code=403, detail="Sende permission jok updateqa")
+
+        update_data = data.model_dump(exclude_unset=True)
+
+        if "name" in update_data and update_data["name"] != team.name:
+            existing_team = await db.execute(
+                select(Team).where(
+                    Team.name == update_data["name"],
+                    Team.id != team.id,
+                )
+            )
+            if existing_team.scalar_one_or_none():
+                raise HTTPException(status_code=400, detail="Team with this name already exists")
+
+        if "conditions_to_join" in update_data and update_data["conditions_to_join"] is not None:
+            update_data["conditions_to_join"] = [
+                item.strip()
+                for item in update_data["conditions_to_join"]
+                if item and item.strip()
+            ]
+
+        for field, value in update_data.items():
+            setattr(team, field, value)
 
         await db.commit()
         await db.refresh(team, attribute_names=["owner"])
