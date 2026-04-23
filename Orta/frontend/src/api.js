@@ -93,11 +93,19 @@ export async function createTeam(teamData) {
 }
 
 export async function getTeamById(teamId) {
-  const response = await fetch(`${API_URL}/teams/${teamId}`);
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`http://127.0.0.1:8000/teams/${teamId}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.detail || "Failed to load team");
+    throw new Error(data.detail || "Failed to fetch team");
   }
 
   return data;
@@ -141,16 +149,6 @@ export async function leaveTeam(teamId) {
   return data;
 }
 
-export async function getTeamMembers(teamId) {
-  const response = await fetch(`${API_URL}/teams/${teamId}/members`);
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.detail || "Failed to load team members");
-  }
-
-  return data;
-}
 
 export async function getMyTeams() {
   const token = localStorage.getItem("token");
@@ -166,6 +164,45 @@ export async function getMyTeams() {
 
   if (!response.ok) {
     throw new Error(data.detail || "Failed to load my teams");
+  }
+
+  return data;
+}
+
+
+export async function getTeamWorkspace(teamId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`http://127.0.0.1:8000/teams/${teamId}/workspace`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to load team workspace");
+  }
+
+  return data;
+}
+
+export async function getTeamMembers(teamId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`http://127.0.0.1:8000/teams/${teamId}/members`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to load team members");
   }
 
   return data;

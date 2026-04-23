@@ -10,6 +10,7 @@ from app.schemas.team import (
     TeamMemberResponse,
     TeamResponse,
     TeamUpdateSchema,
+    TeamMemberDetailsResponse,
 )
 from app.services.team_service import team_service
 
@@ -44,9 +45,6 @@ async def get_team(
 ):
     return await team_service.get_team_by_id(db, team_id, current_user)
 
-@router.get("/{team_id}/members", response_model=list[TeamMemberResponse])
-async def get_team_members(team_id: int, db: Annotated[AsyncSession, Depends(get_db)],):
-    return await team_service.list_team_members(db, team_id)
 
 @router.patch("/{team_id}", response_model=TeamResponse)
 async def update_team(
@@ -97,3 +95,20 @@ async def update_member_role(
         member_user_id=member_user_id,
         new_role=data.role,
     )
+
+@router.get("/{team_id}/workspace", response_model=TeamResponse)
+async def get_team_workspace(
+    team_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await team_service.get_team_workspace(db, current_user, team_id)
+
+
+@router.get("/{team_id}/members", response_model=list[TeamMemberDetailsResponse])
+async def get_team_members(
+    team_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await team_service.list_team_members_detailed(db, current_user, team_id)

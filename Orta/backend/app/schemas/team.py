@@ -85,3 +85,13 @@ class TeamMemberResponse(BaseModel):
 
 class MemberRoleUpdateSchema(BaseModel):
     role: TeamRole
+
+
+class TeamMemberDetailsResponse(BaseModel):
+    id: int
+    user_id: int
+    username: str | None
+    role: TeamRole
+    joined_at: datetime
+
+    model_config = {"from_attributes": True}

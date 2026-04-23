@@ -6,6 +6,7 @@ import BrowseTeams from "./pages/BrowseTeams";
 import MyTeams from "./pages/MyTeams";
 import CreateTeam from "./pages/CreateTeam";
 import Profile from "./pages/Profile";
+import TeamWorkspace from "./pages/TeamWorkspace";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
 
@@ -60,6 +61,8 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="/teams/:teamId" element={<ProtectedRoute><TeamWorkspace /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

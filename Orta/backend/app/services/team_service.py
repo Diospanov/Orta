@@ -365,6 +365,53 @@ class TeamService:
         await db.refresh(target_membership)
 
         return target_membership
+    
+
+    async def list_team_members_detailed(self, db, current_user: User, team_id: int):
+        membership = await get_team_membership(db, current_user.id, team_id)
+
+        if not membership and current_user.role != UserRole.ADMIN:
+            raise HTTPException(
+                status_code=403,
+                detail="Only team members can view the team members list",
+            )
+
+        result = await db.execute(
+            select(TeamMember)
+            .options(selectinload(TeamMember.user))
+            .where(TeamMember.team_id == team_id)
+        )
+        members = result.scalars().all()
+
+        return [
+            {
+                "id": member.id,
+                "user_id": member.user_id,
+                "username": member.user.username if member.user else None,
+                "role": member.role,
+                "joined_at": member.joined_at,
+            }
+            for member in members
+        ]
+    
+
+    async def get_team_workspace(
+        self,
+        db,
+        current_user: User,
+        team_id: int,
+    ):
+        team = await self._get_team_model(db, team_id)
+
+        membership = await get_team_membership(db, current_user.id, team_id)
+
+        if not membership and current_user.role != UserRole.ADMIN:
+            raise HTTPException(
+                status_code=403,
+                detail="Only team members can access this team workspace",
+            )
+
+        return await self._build_team_response(db, team, current_user)
 
 
 team_service = TeamService()
