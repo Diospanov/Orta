@@ -110,7 +110,11 @@ export default function TeamWorkspace() {
     if (!token) return;
 
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const wsUrl = `${protocol}://127.0.0.1:8000/teams/${teamId}/ws?token=${encodeURIComponent(token)}`;
+    const wsHost = import.meta.env.VITE_API_URL
+      ? import.meta.env.VITE_API_URL.replace(/^https?:\/\//, "")
+      : "127.0.0.1:8000";
+
+    const wsUrl = `${protocol}://${wsHost}/teams/${teamId}/ws?token=${encodeURIComponent(token)}`;
 
     console.log("Connecting to WS:", wsUrl);
 
