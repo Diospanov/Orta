@@ -8,6 +8,21 @@ function getInitial(name) {
   return name?.trim()?.charAt(0)?.toUpperCase() || "T";
 }
 
+function getCurrentUserIdFromToken() {
+  const token = localStorage.getItem("token");
+  if (!token) return null;
+
+  try {
+    const payloadBase64 = token.split(".")[1];
+    const normalized = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(normalized));
+    return payload?.sub ? Number(payload.sub) : null;
+  } catch (error) {
+    console.error("Failed to parse token:", error);
+    return null;
+  }
+}
+
 function formatRelativeDate(dateString) {
   if (!dateString) return "Recently";
 
@@ -91,18 +106,23 @@ export default function TeamWorkspace() {
   }, [teamId]);
 
   useEffect(() => {
-    if (!team) return;
-
     const token = localStorage.getItem("token");
     if (!token) return;
 
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const wsUrl = `${protocol}://127.0.0.1:8000/teams/${teamId}/ws?token=${encodeURIComponent(token)}`;
 
+    console.log("Connecting to WS:", wsUrl);
+
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
+    socket.onopen = () => {
+      console.log("WebSocket connected");
+    };
+
     socket.onmessage = (event) => {
+      console.log("WS message received:", event.data);
       const data = JSON.parse(event.data);
 
       if (data.type === "new_message" && data.message) {
@@ -110,21 +130,30 @@ export default function TeamWorkspace() {
       }
     };
 
-    socket.onerror = () => {
-      console.error("WebSocket connection error");
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    socket.onclose = (event) => {
+      console.log("WebSocket closed:", event.code, event.reason);
     };
 
     return () => {
       socket.close();
       socketRef.current = null;
     };
-  }, [team, teamId]);
+  }, [teamId]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    const userId = getCurrentUserIdFromToken();
+    setCurrentUserId(userId);
+  }, []);
 
   const availableSpots = useMemo(() => {
     if (!team) return 0;
@@ -152,6 +181,8 @@ export default function TeamWorkspace() {
       handleSendMessage();
     }
   };
+
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   return (
     <>
@@ -351,29 +382,34 @@ export default function TeamWorkspace() {
                   <div className="space-y-5">
                     {messages.length > 0 ? (
                       messages.map((message) => {
-                        const isMine =
-                          team &&
-                          typeof message.user_id === "number" &&
-                          message.user_id === team.owner_id
-                            ? false
-                            : false;
+                        const isMine = Number(message.user_id) === Number(currentUserId);
 
                         return (
-                          <div key={message.id}>
-                            {message.username === "You" ? null : null}
+                          <div
+                            key={message.id}
+                            className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                          >
                             <div
-                              className={`flex items-start gap-3 ${
-                                message.username === "You" ? "justify-end" : ""
+                              className={`flex max-w-[82%] items-end gap-3 ${
+                                isMine ? "flex-row-reverse" : "flex-row"
                               }`}
                             >
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#11c8a1] text-[11px] font-bold text-white">
-                                {getInitial(message.username)}
+                              <div
+                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-[#0a6787] ${
+                                  isMine ? "bg-[#efe8a7] text-[#0b6f95]" : "bg-[#11c8a1]"
+                                }`}
+                              >
+                                {isMine ? "Y" : getInitial(message.username)}
                               </div>
 
-                              <div className="max-w-[80%]">
-                                <div className="flex items-center gap-2">
+                              <div className={`${isMine ? "items-end" : "items-start"} flex flex-col`}>
+                                <div
+                                  className={`mb-1 flex items-center gap-2 ${
+                                    isMine ? "flex-row-reverse" : "flex-row"
+                                  }`}
+                                >
                                   <p className="text-sm font-semibold text-white">
-                                    {message.username || "Unknown user"}
+                                    {isMine ? "You" : message.username || "Unknown user"}
                                   </p>
                                   <span className="text-xs text-white/50">
                                     {new Date(message.created_at).toLocaleTimeString([], {
@@ -383,7 +419,13 @@ export default function TeamWorkspace() {
                                   </span>
                                 </div>
 
-                                <div className="mt-1 rounded-2xl bg-white/10 px-4 py-3 text-sm leading-6 text-white/90">
+                                <div
+                                  className={`rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
+                                    isMine
+                                      ? "rounded-br-md bg-[#f3efb0] text-[#0a6787]"
+                                      : "rounded-bl-md bg-[#0d8a99] text-white"
+                                  }`}
+                                >
                                   {message.content}
                                 </div>
                               </div>

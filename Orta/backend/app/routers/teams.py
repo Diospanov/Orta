@@ -133,24 +133,34 @@ async def team_chat_ws(
     team_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
+    print("WS connect attempt for team:", team_id)
+
     token = websocket.query_params.get("token")
+    print("WS token exists:", bool(token))
+
     user = await get_user_from_websocket_token(db, token)
+    print("WS user:", user.username if user else None)
 
     if not user:
+        print("WS close: invalid user")
         await websocket.close(code=1008)
         return
 
     try:
         await team_chat_service.ensure_member(db, user, team_id)
-    except HTTPException:
+    except HTTPException as e:
+        print("WS close: not member", e.detail)
         await websocket.close(code=1008)
         return
 
     await team_chat_manager.connect(team_id, websocket)
+    print(f"WS connected: user={user.username}, team={team_id}")
 
     try:
         while True:
             data = await websocket.receive_json()
+            print("WS received:", data)
+
             content = str(data.get("content", "")).strip()
 
             if not content:
@@ -167,6 +177,8 @@ async def team_chat_ws(
                 content=content,
             )
 
+            print("WS broadcasting:", message)
+
             await team_chat_manager.broadcast(
                 team_id,
                 {
@@ -176,10 +188,5 @@ async def team_chat_ws(
             )
 
     except WebSocketDisconnect:
+        print(f"WS disconnected: user={user.username}, team={team_id}")
         team_chat_manager.disconnect(team_id, websocket)
-    except Exception:
-        team_chat_manager.disconnect(team_id, websocket)
-        try:
-            await websocket.close()
-        except Exception:
-            pass
