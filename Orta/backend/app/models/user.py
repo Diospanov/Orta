@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from .join_req import JoinRequest
     from .team import Team
     from .team_member import TeamMember
+    from .team_message import TeamMessage
 
 class User(Base):
     __tablename__ = "users"
@@ -31,3 +32,8 @@ class User(Base):
 
     # юсердын реквесттеры
     join_requests:Mapped[List["JoinRequest"]] = relationship(back_populates="user",cascade="all, delete-orphan")
+
+    team_messages: Mapped[list["TeamMessage"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )

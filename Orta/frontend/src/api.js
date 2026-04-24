@@ -207,3 +207,22 @@ export async function getTeamMembers(teamId) {
 
   return data;
 }
+
+export async function getTeamMessages(teamId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`http://127.0.0.1:8000/teams/${teamId}/messages`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to fetch team messages");
+  }
+
+  return data;
+}

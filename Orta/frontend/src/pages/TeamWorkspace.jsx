@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getTeamWorkspace, getTeamMembers } from "../api";
+import { getTeamWorkspace, getTeamMembers, getTeamMessages } from "../api";
 
 function getInitial(name) {
   return name?.trim()?.charAt(0)?.toUpperCase() || "T";
@@ -52,21 +52,18 @@ function StatCard({ label, value }) {
   );
 }
 
-const demoMessages = [
-  { id: 1, user: "Alex Johnson", time: "10:30 AM", text: "Hey everyone! Ready for our study session tonight?", mine: false },
-  { id: 2, user: "Sam Rivera", time: "10:32 AM", text: "Yes! I've been working through the practice problems.", mine: false },
-  { id: 3, user: "You", time: "10:35 AM", text: "Count me in! I have some questions about chain rule.", mine: true },
-  { id: 4, user: "Jordan Lee", time: "10:37 AM", text: "I can help with that! I just uploaded my study guide.", mine: false },
-  { id: 5, user: "Maria Gonzalez", time: "10:40 AM", text: "Perfect timing! See you all at 7 PM.", mine: false },
-];
-
 export default function TeamWorkspace() {
   const { teamId } = useParams();
 
   const [team, setTeam] = useState(null);
   const [members, setMembers] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [messageInput, setMessageInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const socketRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -74,13 +71,15 @@ export default function TeamWorkspace() {
         setLoading(true);
         setErrorMessage("");
 
-        const [teamData, membersData] = await Promise.all([
+        const [teamData, membersData, messagesData] = await Promise.all([
           getTeamWorkspace(teamId),
           getTeamMembers(teamId),
+          getTeamMessages(teamId),
         ]);
 
         setTeam(teamData);
         setMembers(Array.isArray(membersData) ? membersData : []);
+        setMessages(Array.isArray(messagesData) ? messagesData : []);
       } catch (error) {
         setErrorMessage(error.message || "Failed to load team workspace");
       } finally {
@@ -91,10 +90,68 @@ export default function TeamWorkspace() {
     loadData();
   }, [teamId]);
 
+  useEffect(() => {
+    if (!team) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = `${protocol}://127.0.0.1:8000/teams/${teamId}/ws?token=${encodeURIComponent(token)}`;
+
+    const socket = new WebSocket(wsUrl);
+    socketRef.current = socket;
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.type === "new_message" && data.message) {
+        setMessages((prev) => [...prev, data.message]);
+      }
+    };
+
+    socket.onerror = () => {
+      console.error("WebSocket connection error");
+    };
+
+    return () => {
+      socket.close();
+      socketRef.current = null;
+    };
+  }, [team, teamId]);
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
+
   const availableSpots = useMemo(() => {
     if (!team) return 0;
     return Math.max((team.max_members || 0) - (team.member_count || 0), 0);
   }, [team]);
+
+  const handleSendMessage = () => {
+    const cleaned = messageInput.trim();
+    if (!cleaned || !socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    socketRef.current.send(
+      JSON.stringify({
+        content: cleaned,
+      })
+    );
+
+    setMessageInput("");
+  };
+
+  const handleMessageKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   return (
     <>
@@ -149,8 +206,7 @@ export default function TeamWorkspace() {
                   <div className="space-y-3">
                     {members.length > 0 ? (
                       members.map((member) => {
-                        const isOwner =
-                          String(member.role).toLowerCase() === "owner";
+                        const isOwner = String(member.role).toLowerCase() === "owner";
 
                         return (
                           <div
@@ -199,7 +255,20 @@ export default function TeamWorkspace() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <StatCard label="Members" value={team.member_count || 0} />
                   <StatCard label="Available Spots" value={availableSpots} />
-                  <StatCard label="Days Active" value={team.created_at ? Math.max(Math.floor((new Date() - new Date(team.created_at)) / (1000 * 60 * 60 * 24)), 1) : 1} />
+                  <StatCard
+                    label="Days Active"
+                    value={
+                      team.created_at
+                        ? Math.max(
+                            Math.floor(
+                              (new Date() - new Date(team.created_at)) /
+                                (1000 * 60 * 60 * 24)
+                            ),
+                            1
+                          )
+                        : 1
+                    }
+                  />
                   <StatCard label="Conditions" value={team.conditions_to_join?.length || 0} />
                 </div>
 
@@ -278,42 +347,53 @@ export default function TeamWorkspace() {
                   </div>
                 </div>
 
-                <div className="h-[520px] overflow-y-auto px-4 py-4">
+                <div ref={chatContainerRef} className="h-[520px] overflow-y-auto px-4 py-4">
                   <div className="space-y-5">
-                    {demoMessages.map((message) => (
-                      <div key={message.id}>
-                        {!message.mine ? (
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#11c8a1] text-[11px] font-bold text-white">
-                              {getInitial(message.user)}
-                            </div>
+                    {messages.length > 0 ? (
+                      messages.map((message) => {
+                        const isMine =
+                          team &&
+                          typeof message.user_id === "number" &&
+                          message.user_id === team.owner_id
+                            ? false
+                            : false;
 
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-semibold text-white">
-                                  {message.user}
-                                </p>
-                                <span className="text-xs text-white/50">
-                                  {message.time}
-                                </span>
+                        return (
+                          <div key={message.id}>
+                            {message.username === "You" ? null : null}
+                            <div
+                              className={`flex items-start gap-3 ${
+                                message.username === "You" ? "justify-end" : ""
+                              }`}
+                            >
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#11c8a1] text-[11px] font-bold text-white">
+                                {getInitial(message.username)}
                               </div>
-                              <p className="mt-1 text-sm leading-6 text-white/88">
-                                {message.text}
-                              </p>
+
+                              <div className="max-w-[80%]">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-semibold text-white">
+                                    {message.username || "Unknown user"}
+                                  </p>
+                                  <span className="text-xs text-white/50">
+                                    {new Date(message.created_at).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </div>
+
+                                <div className="mt-1 rounded-2xl bg-white/10 px-4 py-3 text-sm leading-6 text-white/90">
+                                  {message.content}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        ) : (
-                          <div className="flex items-start justify-end gap-3">
-                            <div className="max-w-[80%] rounded-2xl bg-[#ebe8ab] px-4 py-3 text-sm leading-6 text-[#0b6f95]">
-                              {message.text}
-                            </div>
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#11c8a1] text-[11px] font-bold text-white">
-                              Y
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                        );
+                      })
+                    ) : (
+                      <p className="text-sm text-white/70">No messages yet.</p>
+                    )}
                   </div>
                 </div>
 
@@ -321,11 +401,15 @@ export default function TeamWorkspace() {
                   <div className="flex gap-2">
                     <input
                       type="text"
+                      value={messageInput}
+                      onChange={(e) => setMessageInput(e.target.value)}
+                      onKeyDown={handleMessageKeyDown}
                       placeholder="Type a message..."
                       className="flex-1 rounded-xl border border-white/20 bg-[#0d8a99] px-4 py-3 text-sm text-white placeholder:text-white/60 outline-none"
                     />
                     <button
                       type="button"
+                      onClick={handleSendMessage}
                       className="rounded-xl bg-[#12c39b] px-4 py-3 text-white"
                     >
                       ➤

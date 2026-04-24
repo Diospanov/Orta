@@ -86,6 +86,31 @@ async def get_team_membership(
     return result.scalar_one_or_none()
 
 
+async def get_user_from_websocket_token(
+    db: AsyncSession,
+    token: str | None,
+) -> User | None:
+    if not token:
+        return None
+
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+        )
+        user_id = payload.get("sub")
+        if user_id is None:
+            return None
+    except JWTError:
+        return None
+
+    result = await db.execute(select(User).where(User.id == int(user_id)))
+    user = result.scalar_one_or_none()
+
+    return user
+
+
 def ensure_team_manager(membership: TeamMember | None) -> None:
     if not membership or membership.role not in [TeamRole.OWNER, TeamRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not enough permissions")
