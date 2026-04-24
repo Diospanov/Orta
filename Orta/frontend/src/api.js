@@ -1,4 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
+console.log("VITE_API_URL =", import.meta.env.VITE_API_URL);
 
 export async function loginUser(email, password) {
   const response = await fetch(`${API_URL}/auth/login`, {
@@ -109,7 +110,7 @@ export async function createTeam(teamData) {
 export async function getTeamById(teamId) {
   const token = localStorage.getItem("token");
 
-  const response = await fetch(`http://127.0.0.1:8000/teams/${teamId}`, {
+  const response = await fetch(`${API_URL}/teams/${teamId}`, {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -187,7 +188,7 @@ export async function getMyTeams() {
 export async function getTeamWorkspace(teamId) {
   const token = localStorage.getItem("token");
 
-  const response = await fetch(`http://127.0.0.1:8000/teams/${teamId}/workspace`, {
+  const response = await fetch(`${API_URL}/teams/${teamId}/workspace`, {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -206,7 +207,7 @@ export async function getTeamWorkspace(teamId) {
 export async function getTeamMembers(teamId) {
   const token = localStorage.getItem("token");
 
-  const response = await fetch(`http://127.0.0.1:8000/teams/${teamId}/members`, {
+  const response = await fetch(`${API_URL}/teams/${teamId}/members`, {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -225,7 +226,7 @@ export async function getTeamMembers(teamId) {
 export async function getTeamMessages(teamId) {
   const token = localStorage.getItem("token");
 
-  const response = await fetch(`http://127.0.0.1:8000/teams/${teamId}/messages`, {
+  const response = await fetch(`${API_URL}/teams/${teamId}/messages`, {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
