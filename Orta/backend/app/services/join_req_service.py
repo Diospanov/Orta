@@ -22,7 +22,10 @@ class JoinRequestService:
         ensure_team_manager(membership)
 
         result = await db.execute(
-            select(JoinRequest).where(JoinRequest.team_id == team_id)
+            select(JoinRequest)
+            .where(JoinRequest.team_id == team_id)
+            .where(JoinRequest.status == JoinRequestStatus.PENDING)
+            .order_by(JoinRequest.requested_at.desc())
         )
         return result.scalars().all()
 

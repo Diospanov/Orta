@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
-from sqlalchemy import DateTime, ForeignKey, Enum, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 from .enums import JoinRequestStatus
@@ -10,7 +10,6 @@ if TYPE_CHECKING:
 
 class JoinRequest(Base):
     __tablename__ = "join_requests"
-    __table_args__ = (UniqueConstraint("user_id", "team_id", name="uq_user_team_join_request"),)
 
     id:Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id:Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"),nullable=False)

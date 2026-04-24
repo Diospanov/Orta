@@ -380,12 +380,16 @@ class TeamService:
             select(JoinRequest).where(
                 JoinRequest.user_id == current_user.id,
                 JoinRequest.team_id == team_id,
+                JoinRequest.status == JoinRequestStatus.PENDING,
             )
         )
-        existing_request = request_result.scalar_one_or_none()
+        existing_pending_request = request_result.scalar_one_or_none()
 
-        if existing_request:
-            raise HTTPException(status_code=400, detail="Join request already bar")
+        if existing_pending_request:
+            raise HTTPException(
+                status_code=400,
+                detail="Join request already exists",
+            )
 
         join_request = JoinRequest(
             user_id=current_user.id,
