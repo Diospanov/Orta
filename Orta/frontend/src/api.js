@@ -56,12 +56,26 @@ export async function registerUser(userData) {
 }
 
 
-export async function getAllTeams(search = "") {
-  const url = search
-    ? `${API_URL}/teams?search=${encodeURIComponent(search)}`
-    : `${API_URL}/teams`;
+export async function getAllTeams(search = "", page = 1, size = 9) {
+  const token = localStorage.getItem("token");
 
-  const response = await fetch(url);
+  const params = new URLSearchParams();
+
+  if (search.trim()) {
+    params.append("search", search.trim());
+  }
+
+  params.append("page", page);
+  params.append("size", size);
+
+  const response = await fetch(`${API_URL}/teams?${params.toString()}`, {
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : {},
+  });
+
   const data = await response.json();
 
   if (!response.ok) {

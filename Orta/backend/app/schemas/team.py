@@ -72,6 +72,13 @@ class TeamResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
+class PaginatedTeamsResponse(BaseModel):
+    items: list[TeamResponse]
+    total: int
+    page: int
+    size: int
+    pages: int
+
 
 class TeamMemberResponse(BaseModel):
     id: int

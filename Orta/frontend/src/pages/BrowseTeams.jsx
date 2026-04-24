@@ -170,12 +170,23 @@ export default function BrowseTeams() {
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const loadTeams = async (searchValue = "") => {
+  const PAGE_SIZE = 9;
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [activeSearch, setActiveSearch] = useState("");
+
+  const loadTeams = async (searchValue = "", pageValue = 1) => {
     try {
       setLoading(true);
       setErrorMessage("");
-      const data = await getAllTeams(searchValue);
-      setTeams(Array.isArray(data) ? data : []);
+
+      const data = await getAllTeams(searchValue, pageValue, PAGE_SIZE);
+
+      setTeams(data.items || []);
+      setTotal(data.total || 0);
+      setPages(data.pages || 1);
+      setPage(data.page || pageValue);
     } catch (error) {
       setErrorMessage(error.message || "Failed to load teams");
     } finally {
@@ -184,12 +195,13 @@ export default function BrowseTeams() {
   };
 
   useEffect(() => {
-    loadTeams();
-  }, []);
+    loadTeams(activeSearch, page);
+  }, [activeSearch, page]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    await loadTeams(search);
+    setPage(1);
+    setActiveSearch(search);
   };
 
   const handleJoin = async (teamId) => {
@@ -308,7 +320,7 @@ export default function BrowseTeams() {
           </h2>
           {!loading && !errorMessage ? (
             <span className="text-sm text-white/80">
-              {filteredTeams.length} found
+              {total} found
             </span>
           ) : null}
         </div>
@@ -324,11 +336,39 @@ export default function BrowseTeams() {
             No teams found.
           </p>
         ) : (
-          <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {filteredTeams.map((team) => (
-              <TeamCard key={team.id} team={team} onJoin={handleJoin} />
-            ))}
-          </div>
+          <>
+            <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {filteredTeams.map((team) => (
+                <TeamCard key={team.id} team={team} onJoin={handleJoin} />
+              ))}
+            </div>
+
+            {pages > 1 && (
+              <div className="mt-10 flex items-center justify-center gap-4">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                  className="rounded-2xl border border-white/35 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Previous
+                </button>
+
+                <span className="rounded-2xl bg-[#0a6f95]/80 px-5 py-3 text-sm font-semibold text-white">
+                  Page {page} of {pages}
+                </span>
+
+                <button
+                  type="button"
+                  disabled={page >= pages}
+                  onClick={() => setPage((prev) => Math.min(prev + 1, pages))}
+                  className="rounded-2xl border border-white/35 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         )}
       </main>
 

@@ -13,6 +13,7 @@ from app.schemas.team import (
     TeamResponse,
     TeamUpdateSchema,
     TeamMemberDetailsResponse,
+    PaginatedTeamsResponse,
 )
 from app.services.team_service import team_service
 from app.services.team_chat_service import team_chat_service
@@ -24,13 +25,21 @@ router = APIRouter(prefix="/teams", tags=["Teams"])
 async def create_team(data: TeamCreateSchema,db: Annotated[AsyncSession, Depends(get_db)],current_user: Annotated[User, Depends(get_current_user)],):
     return await team_service.create_team(db, current_user, data)
 
-@router.get("/", response_model=list[TeamResponse])
+@router.get("/", response_model=PaginatedTeamsResponse)
 async def get_teams(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User | None, Depends(get_current_user_optional)],
     search: str | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=9, ge=1, le=50),
 ):
-    return await team_service.get_all_teams(db, search, current_user)
+    return await team_service.get_all_teams(
+        db=db,
+        search=search,
+        current_user=current_user,
+        page=page,
+        size=size,
+    )
 
 
 @router.get("/me", response_model=list[TeamResponse])

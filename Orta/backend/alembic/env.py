@@ -14,7 +14,7 @@ from alembic import context
 from dotenv import load_dotenv
 
 from app.models.base import Base
-
+from app.models.team_message import TeamMessage
 from app.models.user import User
 from app.models.team import Team
 from app.models.team_member import TeamMember

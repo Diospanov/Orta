@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func, select, literal
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -13,6 +13,34 @@ from app.schemas.team import TeamCreateSchema, TeamUpdateSchema, TeamResponse
 
 
 class TeamService:
+
+    def _build_team_response_from_query(
+        self,
+        team: Team,
+        owner_name: str | None,
+        member_count: int,
+        is_member: bool,
+    ) -> TeamResponse:
+        return TeamResponse(
+            id=team.id,
+            name=team.name,
+            description=team.description,
+            category=team.category,
+            owner_id=team.owner_id,
+            owner_name=owner_name,
+            max_members=team.max_members,
+            member_count=member_count,
+            is_public=team.is_public,
+            conditions_to_join=team.conditions_to_join or [],
+            communication_method=team.communication_method,
+            meeting_frequency=team.meeting_frequency,
+            timezone=team.timezone,
+            collaboration_method=team.collaboration_method,
+            status=team.status,
+            created_at=team.created_at,
+            is_member=is_member,
+        )
+
     async def _build_team_response(
         self,
         db: AsyncSession,
@@ -55,6 +83,9 @@ class TeamService:
             created_at=team.created_at,
             is_member=is_member,
         )
+    
+
+
 
     async def _get_team_model(self, db: AsyncSession, team_id: int) -> Team:
         result = await db.execute(
@@ -146,42 +177,142 @@ class TeamService:
         db: AsyncSession,
         search: str | None = None,
         current_user: User | None = None,
+        page: int = 1,
+        size: int = 9,
     ):
-        query = (
-            select(Team)
-            .options(selectinload(Team.owner))
-            .where(Team.status == TeamStatus.ACTIVE)
+        offset = (page - 1) * size
+
+        count_query = select(func.count(Team.id)).where(
+            Team.status == TeamStatus.ACTIVE
         )
+
+        if search:
+            count_query = count_query.where(Team.name.ilike(f"%{search}%"))
+
+        total_result = await db.execute(count_query)
+        total = total_result.scalar_one()
+
+        member_count_subquery = (
+            select(
+                TeamMember.team_id,
+                func.count(TeamMember.id).label("member_count"),
+            )
+            .group_by(TeamMember.team_id)
+            .subquery()
+        )
+
+        if current_user:
+            current_user_membership_subquery = (
+                select(TeamMember.team_id)
+                .where(TeamMember.user_id == current_user.id)
+                .subquery()
+            )
+
+            is_member_expr = (
+                current_user_membership_subquery.c.team_id.is_not(None)
+            ).label("is_member")
+        else:
+            current_user_membership_subquery = None
+            is_member_expr = literal(False).label("is_member")
+
+        query = (
+            select(
+                Team,
+                User.username.label("owner_name"),
+                func.coalesce(member_count_subquery.c.member_count, 0).label("member_count"),
+                is_member_expr,
+            )
+            .join(User, User.id == Team.owner_id)
+            .outerjoin(
+                member_count_subquery,
+                member_count_subquery.c.team_id == Team.id,
+            )
+            .where(Team.status == TeamStatus.ACTIVE)
+            .order_by(Team.created_at.desc())
+            .offset(offset)
+            .limit(size)
+        )
+
+        if current_user_membership_subquery is not None:
+            query = query.outerjoin(
+                current_user_membership_subquery,
+                current_user_membership_subquery.c.team_id == Team.id,
+            )
 
         if search:
             query = query.where(Team.name.ilike(f"%{search}%"))
 
         result = await db.execute(query)
-        teams = result.scalars().all()
+        rows = result.all()
 
-        return [
-            await self._build_team_response(db, team, current_user)
-            for team in teams
+        items = [
+            self._build_team_response_from_query(
+                team=team,
+                owner_name=owner_name,
+                member_count=member_count,
+                is_member=is_member,
+            )
+            for team, owner_name, member_count, is_member in rows
         ]
-    
+
+        pages = (total + size - 1) // size
+
+        return {
+            "items": items,
+            "total": total,
+            "page": page,
+            "size": size,
+            "pages": pages,
+        }
 
     async def get_my_teams(
         self,
         db: AsyncSession,
         current_user: User,
     ):
-        result = await db.execute(
-            select(Team)
-            .join(TeamMember, TeamMember.team_id == Team.id)
-            .options(selectinload(Team.owner))
+        member_count_subquery = (
+            select(
+                TeamMember.team_id,
+                func.count(TeamMember.id).label("member_count"),
+            )
+            .group_by(TeamMember.team_id)
+            .subquery()
+        )
+
+        query = (
+            select(
+                Team,
+                User.username.label("owner_name"),
+                func.coalesce(member_count_subquery.c.member_count, 0).label("member_count"),
+                literal(True).label("is_member"),
+            )
+            .join(
+                TeamMember,
+                TeamMember.team_id == Team.id,
+            )
+            .join(
+                User,
+                User.id == Team.owner_id,
+            )
+            .outerjoin(
+                member_count_subquery,
+                member_count_subquery.c.team_id == Team.id,
+            )
             .where(TeamMember.user_id == current_user.id)
             .where(Team.status == TeamStatus.ACTIVE)
         )
-        teams = result.scalars().unique().all()
+
+        result = await db.execute(query)
+        rows = result.all()
 
         return [
-            await self._build_team_response(db, team, current_user)
-            for team in teams
+            self._build_team_response_from_query(
+                team=team,
+                owner_name=owner_name,
+                member_count=member_count,
+                is_member=is_member,
+            )
+            for team, owner_name, member_count, is_member in rows
         ]
 
 
@@ -211,20 +342,7 @@ class TeamService:
         )
         return result.scalars().all()
 
-    async def update_team(self, db: AsyncSession, current_user: User, team_id: int, data: TeamUpdateSchema):
-        team = await self._get_team_model(db, team_id)
-
-        if team.owner_id != current_user.id and current_user.role != UserRole.ADMIN:
-            raise HTTPException(status_code=403, detail="Sende permission jok updateqa")
-
-        update_data = data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(team, field, value)
-
-        await db.commit()
-        await db.refresh(team, attribute_names=["owner"])
-        return await self._build_team_response(db, team, current_user)
-
+    
     async def join_team(self, db: AsyncSession, current_user: User, team_id: int):
         team = await self._get_team_model(db, team_id)
 
