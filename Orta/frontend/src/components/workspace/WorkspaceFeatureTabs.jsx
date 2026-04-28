@@ -790,6 +790,177 @@ export function ScheduleTab({ teamId }) {
   );
 }
 
+
+export function RequestsTab({ teamId, canManage, onRequestAccepted }) {
+  const [requests, setRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [actionId, setActionId] = useState(null);
+
+  const loadRequests = async () => {
+    if (!canManage) return;
+
+    try {
+      setLoadingRequests(true);
+      setErrorMessage("");
+
+      const data = await getTeamJoinRequests(teamId);
+      setRequests(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to load join requests");
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRequests();
+  }, [teamId, canManage]);
+
+  const handleAccept = async (requestId) => {
+    try {
+      setActionId(requestId);
+
+      await acceptJoinRequest(requestId);
+
+      setRequests((prev) =>
+        prev.filter((request) => request.id !== requestId)
+      );
+
+      onRequestAccepted?.();
+    } catch (error) {
+      alert(error.message || "Failed to accept request");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleReject = async (requestId) => {
+    try {
+      setActionId(requestId);
+
+      await rejectJoinRequest(requestId);
+
+      setRequests((prev) =>
+        prev.filter((request) => request.id !== requestId)
+      );
+    } catch (error) {
+      alert(error.message || "Failed to reject request");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  return (
+    <>
+      <SectionHeader
+        title="Join Requests"
+        subtitle="Review users who want to join this team."
+      />
+
+      {!canManage ? (
+        <Card>
+          <p className="text-sm text-white/75">
+            Only the team owner can view and manage join requests.
+          </p>
+        </Card>
+      ) : (
+        <>
+          <Card>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  Pending Requests
+                </h2>
+
+                <p className="mt-1 text-sm text-white/65">
+                  Accept or reject users who requested access to this team.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={loadRequests}
+                className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20"
+              >
+                Refresh
+              </button>
+            </div>
+
+            {errorMessage && (
+              <p className="mt-4 rounded-xl bg-red-500/20 p-3 text-sm text-red-100">
+                {errorMessage}
+              </p>
+            )}
+          </Card>
+
+          <div className="mt-5 space-y-3">
+            {loadingRequests ? (
+              <p className="text-sm text-white/70">Loading requests...</p>
+            ) : requests.length === 0 ? (
+              <EmptyState>No pending join requests.</EmptyState>
+            ) : (
+              requests.map((request) => {
+                const requesterName =
+                  request.user_name ||
+                  request.username ||
+                  request.requester_name ||
+                  request.user?.username ||
+                  request.user?.full_name ||
+                  `User #${request.user_id || request.requester_id || request.id}`;
+
+                return (
+                  <div
+                    key={request.id}
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/15 bg-white/10 p-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#11c8a1] text-sm font-bold text-white">
+                        {requesterName?.charAt(0)?.toUpperCase() || "U"}
+                      </div>
+
+                      <div>
+                        <p className="font-semibold text-white">
+                          {requesterName}
+                        </p>
+
+                        <p className="text-xs text-white/60">
+                          Status: {request.status || "PENDING"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAccept(request.id)}
+                        disabled={actionId === request.id}
+                        className="rounded-xl bg-[#12c39b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#16d1a7] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Accept
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleReject(request.id)}
+                        disabled={actionId === request.id}
+                        className="rounded-xl bg-red-500/90 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+
 export function SettingsTab({
   teamId,
   team,
@@ -816,6 +987,23 @@ export function SettingsTab({
   const [teamError, setTeamError] = useState("");
   const [teamSuccess, setTeamSuccess] = useState("");
   const [memberActionId, setMemberActionId] = useState(null);
+
+  useEffect(() => {
+    setFormData({
+      name: team.name || "",
+      description: team.description || "",
+      category: team.category || "",
+      max_members: team.max_members || 10,
+      is_public: Boolean(team.is_public),
+      communication_method: team.communication_method || "",
+      meeting_frequency: team.meeting_frequency || "",
+      timezone: team.timezone || "",
+      collaboration_method: team.collaboration_method || "",
+      conditions_to_join: Array.isArray(team.conditions_to_join)
+        ? team.conditions_to_join.join(", ")
+        : "",
+    });
+  }, [team]);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({
@@ -860,7 +1048,9 @@ export function SettingsTab({
   const handleRoleChange = async (memberId, newRole) => {
     try {
       setMemberActionId(memberId);
+
       await updateTeamMemberRole(teamId, memberId, newRole);
+
       onTeamUpdated?.();
     } catch (error) {
       alert(error.message || "Failed to update role");
@@ -870,26 +1060,25 @@ export function SettingsTab({
   };
 
   const handleTransferOwnership = async (member) => {
-    const username =
-        member.username || member.user?.username || "this member";
+    const username = member.username || member.user?.username || "this member";
 
     const confirmed = window.confirm(
-        `Transfer team ownership to ${username}? You will no longer be the owner.`
+      `Transfer team ownership to ${username}? You will no longer be the owner.`
     );
 
     if (!confirmed) return;
 
     try {
-        setMemberActionId(member.id);
+      setMemberActionId(member.id);
 
-        await transferTeamOwnership(teamId, member.id);
+      await transferTeamOwnership(teamId, member.id);
 
-        alert("Ownership transferred successfully.");
-        onTeamUpdated?.();
+      alert("Ownership transferred successfully.");
+      onTeamUpdated?.();
     } catch (error) {
-        alert(error.message || "Failed to transfer ownership");
+      alert(error.message || "Failed to transfer ownership");
     } finally {
-        setMemberActionId(null);
+      setMemberActionId(null);
     }
   };
 
@@ -902,7 +1091,9 @@ export function SettingsTab({
 
     try {
       setMemberActionId(memberId);
+
       await removeTeamMember(teamId, memberId);
+
       onTeamUpdated?.();
     } catch (error) {
       alert(error.message || "Failed to remove member");
@@ -941,7 +1132,10 @@ export function SettingsTab({
 
         <div className="mt-5 grid gap-3 md:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm text-white/75">Team name</label>
+            <label className="mb-2 block text-sm text-white/75">
+              Team name
+            </label>
+
             <input
               value={formData.name}
               onChange={(e) => handleChange("name", e.target.value)}
@@ -951,7 +1145,10 @@ export function SettingsTab({
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-white/75">Category</label>
+            <label className="mb-2 block text-sm text-white/75">
+              Category
+            </label>
+
             <input
               value={formData.category}
               onChange={(e) => handleChange("category", e.target.value)}
@@ -961,7 +1158,10 @@ export function SettingsTab({
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-white/75">Max members</label>
+            <label className="mb-2 block text-sm text-white/75">
+              Max members
+            </label>
+
             <input
               type="number"
               min="1"
@@ -972,7 +1172,10 @@ export function SettingsTab({
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-white/75">Visibility</label>
+            <label className="mb-2 block text-sm text-white/75">
+              Visibility
+            </label>
+
             <select
               value={formData.is_public ? "public" : "private"}
               onChange={(e) =>
@@ -987,7 +1190,10 @@ export function SettingsTab({
         </div>
 
         <div className="mt-3">
-          <label className="mb-2 block text-sm text-white/75">Description</label>
+          <label className="mb-2 block text-sm text-white/75">
+            Description
+          </label>
+
           <textarea
             value={formData.description}
             onChange={(e) => handleChange("description", e.target.value)}
@@ -1002,6 +1208,7 @@ export function SettingsTab({
             <label className="mb-2 block text-sm text-white/75">
               Communication method
             </label>
+
             <input
               value={formData.communication_method}
               onChange={(e) =>
@@ -1016,6 +1223,7 @@ export function SettingsTab({
             <label className="mb-2 block text-sm text-white/75">
               Meeting frequency
             </label>
+
             <input
               value={formData.meeting_frequency}
               onChange={(e) =>
@@ -1027,7 +1235,10 @@ export function SettingsTab({
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-white/75">Timezone</label>
+            <label className="mb-2 block text-sm text-white/75">
+              Timezone
+            </label>
+
             <input
               value={formData.timezone}
               onChange={(e) => handleChange("timezone", e.target.value)}
@@ -1040,6 +1251,7 @@ export function SettingsTab({
             <label className="mb-2 block text-sm text-white/75">
               Collaboration method
             </label>
+
             <input
               value={formData.collaboration_method}
               onChange={(e) =>
@@ -1055,9 +1267,12 @@ export function SettingsTab({
           <label className="mb-2 block text-sm text-white/75">
             Conditions to join
           </label>
+
           <input
             value={formData.conditions_to_join}
-            onChange={(e) => handleChange("conditions_to_join", e.target.value)}
+            onChange={(e) =>
+              handleChange("conditions_to_join", e.target.value)
+            }
             className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white outline-none"
             placeholder="Separate conditions with commas"
           />
@@ -1093,64 +1308,65 @@ export function SettingsTab({
             <p className="text-sm text-white/70">No members found.</p>
           ) : (
             members.map((member) => {
-                const username =
-                    member.username || member.user?.username || "Unknown user";
+              const username =
+                member.username || member.user?.username || "Unknown user";
 
-                const memberUserId = Number(member.user_id ?? member.user?.id);
+              const memberUserId = Number(member.user_id ?? member.user?.id);
+              const isTeamOwner = memberUserId === Number(team.owner_id);
 
-                const isTeamOwner = memberUserId === Number(team.owner_id);
+              return (
+                <div
+                  key={member.id}
+                  className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white/10 p-4"
+                >
+                  <div>
+                    <p className="font-bold text-white">{username}</p>
 
-                return (
-                    <div
-                    key={member.id}
-                    className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white/10 p-4"
-                    >
-                    <div>
-                        <p className="font-bold text-white">{username}</p>
+                    <p className="text-sm text-white/60">
+                      {isTeamOwner ? "Team owner" : `Role: ${member.role}`}
+                    </p>
+                  </div>
 
-                        <p className="text-sm text-white/60">
-                        {isTeamOwner ? "Team owner" : `Role: ${member.role}`}
-                        </p>
+                  {isTeamOwner ? (
+                    <span className="rounded-full bg-[#f1f3b0] px-3 py-1 text-xs font-bold text-[#0a6787]">
+                      Owner
+                    </span>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      <select
+                        value={member.role || "member"}
+                        disabled={memberActionId === member.id}
+                        onChange={(e) =>
+                          handleRoleChange(member.id, e.target.value)
+                        }
+                        className="rounded-xl border border-white/20 bg-[#0b6f95] px-3 py-2 text-sm text-white outline-none"
+                      >
+                        <option value="member">Member</option>
+                        <option value="admin">Admin</option>
+                      </select>
+
+                      <button
+                        type="button"
+                        disabled={memberActionId === member.id}
+                        onClick={() => handleTransferOwnership(member)}
+                        className="rounded-xl bg-[#f1f3b0] px-4 py-2 text-sm font-semibold text-[#0a6787] hover:bg-[#f6f8c2] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Transfer Ownership
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={memberActionId === member.id}
+                        onClick={() => handleRemoveMember(member.id, username)}
+                        className="rounded-xl bg-red-500/20 px-4 py-2 text-sm text-red-100 hover:bg-red-500/35 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Remove
+                      </button>
                     </div>
-
-                    {isTeamOwner ? (
-                        <span className="rounded-full bg-[#f1f3b0] px-3 py-1 text-xs font-bold text-[#0a6787]">
-                        Owner
-                        </span>
-                    ) : (
-                        <div className="flex flex-wrap gap-2">
-                        <select
-                            value={member.role || "member"}
-                            disabled={memberActionId === member.id}
-                            onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                            className="rounded-xl border border-white/20 bg-[#0b6f95] px-3 py-2 text-sm text-white outline-none"
-                        >
-                            <option value="member">Member</option>
-                            <option value="admin">Admin</option>
-                        </select>
-
-                        <button
-                            type="button"
-                            disabled={memberActionId === member.id}
-                            onClick={() => handleTransferOwnership(member)}
-                            className="rounded-xl bg-[#f1f3b0] px-4 py-2 text-sm font-semibold text-[#0a6787] hover:bg-[#f6f8c2] disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            Transfer Ownership
-                        </button>
-
-                        <button
-                            type="button"
-                            disabled={memberActionId === member.id}
-                            onClick={() => handleRemoveMember(member.id, username)}
-                            className="rounded-xl bg-red-500/20 px-4 py-2 text-sm text-red-100 hover:bg-red-500/35 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            Remove
-                        </button>
-                        </div>
-                    )}
-                    </div>
-                );
-                })
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
       </Card>

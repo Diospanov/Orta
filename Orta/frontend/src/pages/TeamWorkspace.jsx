@@ -12,6 +12,7 @@ import {
   GoalsTab,
   FilesTab,
   ScheduleTab,
+  RequestsTab,
   SettingsTab,
 } from "../components/workspace/WorkspaceFeatureTabs";
 
@@ -275,6 +276,13 @@ export default function TeamWorkspace() {
                     </NavItem>
 
                     <NavItem
+                      active={activeTab === "requests"}
+                      onClick={() => setActiveTab("requests")}
+                    >
+                      📩 Requests
+                    </NavItem>
+
+                    <NavItem
                       active={activeTab === "settings"}
                       onClick={() => setActiveTab("settings")}
                     >
@@ -339,6 +347,14 @@ export default function TeamWorkspace() {
                 {activeTab === "files" && <FilesTab teamId={team.id} />}
 
                 {activeTab === "schedule" && <ScheduleTab teamId={team.id} />}
+
+                {activeTab === "requests" && (
+                  <RequestsTab
+                    teamId={team.id}
+                    canManage={isCurrentUserOwner}
+                    onRequestAccepted={loadWorkspaceData}
+                  />
+                )}
 
                 {activeTab === "settings" && (
                   <SettingsTab
