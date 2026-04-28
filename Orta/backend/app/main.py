@@ -5,6 +5,8 @@ from app.routers.auth import router as auth_router
 from app.routers.join_reqs import router as join_request_router
 from app.routers.teams import router as teams_router
 from app.routers.user import router as users_router
+from app.routers import team_features
+from app.routers.team_admin import router as team_admin_router
 
 
 app = FastAPI(title="Orta API")
@@ -25,6 +27,8 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(teams_router)
 app.include_router(join_request_router)
+app.include_router(team_features.router)
+app.include_router(team_admin_router)
 
 print("CORS READY FOR:", [
     "http://localhost:5173",

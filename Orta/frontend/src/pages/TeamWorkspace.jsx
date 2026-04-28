@@ -2,7 +2,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getTeamWorkspace, getTeamMembers, getTeamMessages } from "../api";
+import {
+  getTeamMembers,
+  getTeamMessages,
+  getTeamWorkspace,
+} from "../api";
+import {
+  OverviewTab,
+  GoalsTab,
+  FilesTab,
+  ScheduleTab,
+  SettingsTab,
+} from "../components/workspace/WorkspaceFeatureTabs";
+
 
 function getInitial(name) {
   return name?.trim()?.charAt(0)?.toUpperCase() || "T";
@@ -16,6 +28,7 @@ function getCurrentUserIdFromToken() {
     const payloadBase64 = token.split(".")[1];
     const normalized = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
     const payload = JSON.parse(atob(normalized));
+
     return payload?.sub ? Number(payload.sub) : null;
   } catch (error) {
     console.error("Failed to parse token:", error);
@@ -23,30 +36,11 @@ function getCurrentUserIdFromToken() {
   }
 }
 
-function formatRelativeDate(dateString) {
-  if (!dateString) return "Recently";
-
-  const now = new Date();
-  const date = new Date(dateString);
-  const diffMs = now - date;
-
-  if (Number.isNaN(date.getTime())) return "Recently";
-
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (days < 1) return "Today";
-  if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
-
-  const weeks = Math.floor(days / 7);
-  if (weeks < 5) return `${weeks} week${weeks === 1 ? "" : "s"} ago`;
-
-  const months = Math.floor(days / 30);
-  return `${months} month${months === 1 ? "" : "s"} ago`;
-}
-
-function NavItem({ active, children }) {
+function NavItem({ active, children, onClick }) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className={`w-full rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
         active
           ? "bg-[#0e8398] text-[#f1f3b0]"
@@ -55,15 +49,6 @@ function NavItem({ active, children }) {
     >
       {children}
     </button>
-  );
-}
-
-function StatCard({ label, value }) {
-  return (
-    <div className="rounded-[16px] border border-[#d9ef9d]/20 bg-[#0d8a99] p-5">
-      <p className="text-sm text-white/80">{label}</p>
-      <p className="mt-3 text-4xl font-bold text-white">{value}</p>
-    </div>
   );
 }
 
@@ -76,33 +61,40 @@ export default function TeamWorkspace() {
   const [messageInput, setMessageInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [activeTab, setActiveTab] = useState("overview");
 
   const socketRef = useRef(null);
   const chatContainerRef = useRef(null);
 
+  const loadWorkspaceData = async () => {
+    try {
+      setLoading(true);
+      setErrorMessage("");
+
+      const [teamData, membersData, messagesData] = await Promise.all([
+        getTeamWorkspace(teamId),
+        getTeamMembers(teamId),
+        getTeamMessages(teamId),
+      ]);
+
+      setTeam(teamData);
+      setMembers(Array.isArray(membersData) ? membersData : []);
+      setMessages(Array.isArray(messagesData) ? messagesData : []);
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to load team workspace");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setErrorMessage("");
+    const userId = getCurrentUserIdFromToken();
+    setCurrentUserId(userId);
+  }, []);
 
-        const [teamData, membersData, messagesData] = await Promise.all([
-          getTeamWorkspace(teamId),
-          getTeamMembers(teamId),
-          getTeamMessages(teamId),
-        ]);
-
-        setTeam(teamData);
-        setMembers(Array.isArray(membersData) ? membersData : []);
-        setMessages(Array.isArray(messagesData) ? messagesData : []);
-      } catch (error) {
-        setErrorMessage(error.message || "Failed to load team workspace");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
+  useEffect(() => {
+    loadWorkspaceData();
   }, [teamId]);
 
   useEffect(() => {
@@ -110,11 +102,14 @@ export default function TeamWorkspace() {
     if (!token) return;
 
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+
     const wsHost = import.meta.env.VITE_API_URL
-      ? import.meta.env.VITE_API_URL.replace(/^https?:\/\//, "")
+      ? import.meta.env.VITE_API_URL.replace(/^https?:\/\//, "").replace(/\/$/, "")
       : "127.0.0.1:8000";
 
-    const wsUrl = `${protocol}://${wsHost}/teams/${teamId}/ws?token=${encodeURIComponent(token)}`;
+    const wsUrl = `${protocol}://${wsHost}/teams/${teamId}/ws?token=${encodeURIComponent(
+      token
+    )}`;
 
     console.log("Connecting to WS:", wsUrl);
 
@@ -127,10 +122,19 @@ export default function TeamWorkspace() {
 
     socket.onmessage = (event) => {
       console.log("WS message received:", event.data);
-      const data = JSON.parse(event.data);
 
-      if (data.type === "new_message" && data.message) {
-        setMessages((prev) => [...prev, data.message]);
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "new_message" && data.message) {
+          setMessages((prev) => [...prev, data.message]);
+        }
+
+        if (data.type === "error") {
+          console.error("WS server error:", data.detail);
+        }
+      } catch (error) {
+        console.error("Failed to parse WS message:", error);
       }
     };
 
@@ -154,19 +158,35 @@ export default function TeamWorkspace() {
     }
   }, [messages]);
 
-  useEffect(() => {
-    const userId = getCurrentUserIdFromToken();
-    setCurrentUserId(userId);
-  }, []);
-
   const availableSpots = useMemo(() => {
     if (!team) return 0;
+
     return Math.max((team.max_members || 0) - (team.member_count || 0), 0);
   }, [team]);
 
+  const isCurrentUserOwner = useMemo(() => {
+    if (!team || !currentUserId) return false;
+
+    if (Number(team.owner_id) === Number(currentUserId)) {
+      return true;
+    }
+
+    return members.some((member) => {
+      const memberUserId = Number(member.user_id ?? member.user?.id ?? member.id);
+      const role = String(member.role || "").toLowerCase();
+
+      return memberUserId === Number(currentUserId) && role === "owner";
+    });
+  }, [team, members, currentUserId]);
+
   const handleSendMessage = () => {
     const cleaned = messageInput.trim();
-    if (!cleaned || !socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+
+    if (
+      !cleaned ||
+      !socketRef.current ||
+      socketRef.current.readyState !== WebSocket.OPEN
+    ) {
       return;
     }
 
@@ -185,8 +205,6 @@ export default function TeamWorkspace() {
       handleSendMessage();
     }
   };
-
-  const [currentUserId, setCurrentUserId] = useState(null);
 
   return (
     <>
@@ -207,7 +225,9 @@ export default function TeamWorkspace() {
           ) : errorMessage ? (
             <div className="mx-auto mt-10 max-w-2xl rounded-[22px] border border-white/20 bg-[#0b6f95]/90 p-8 text-center shadow-xl">
               <h2 className="text-2xl font-bold text-white">Access denied</h2>
+
               <p className="mt-3 text-white/80">{errorMessage}</p>
+
               <Link
                 to="/browse-teams"
                 className="mt-6 inline-block rounded-xl bg-[#12c39b] px-5 py-3 text-sm font-semibold text-white"
@@ -221,27 +241,61 @@ export default function TeamWorkspace() {
             <div className="grid gap-5 xl:grid-cols-[0.9fr_1.8fr_1.05fr]">
               <aside className="space-y-4">
                 <div className="rounded-[18px] border border-white/30 bg-[#0b6f95]/92 p-4 shadow-xl">
-                  <h3 className="mb-4 text-xl font-bold text-white">Navigation</h3>
+                  <h3 className="mb-4 text-xl font-bold text-white">
+                    Navigation
+                  </h3>
+
                   <div className="space-y-2">
-                    <NavItem active>Overview</NavItem>
-                    <NavItem>Goals</NavItem>
-                    <NavItem>Files</NavItem>
-                    <NavItem>Schedule</NavItem>
-                    <NavItem>Settings</NavItem>
+                    <NavItem
+                      active={activeTab === "overview"}
+                      onClick={() => setActiveTab("overview")}
+                    >
+                      ◎ Overview
+                    </NavItem>
+
+                    <NavItem
+                      active={activeTab === "goals"}
+                      onClick={() => setActiveTab("goals")}
+                    >
+                      🎯 Goals
+                    </NavItem>
+
+                    <NavItem
+                      active={activeTab === "files"}
+                      onClick={() => setActiveTab("files")}
+                    >
+                      📁 Files
+                    </NavItem>
+
+                    <NavItem
+                      active={activeTab === "schedule"}
+                      onClick={() => setActiveTab("schedule")}
+                    >
+                      🗓️ Schedule
+                    </NavItem>
+
+                    <NavItem
+                      active={activeTab === "settings"}
+                      onClick={() => setActiveTab("settings")}
+                    >
+                      ⚙️ Settings
+                    </NavItem>
                   </div>
                 </div>
 
                 <div className="rounded-[18px] border border-white/30 bg-[#0b6f95]/92 p-4 shadow-xl">
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="text-xl font-bold text-white">
-                      Members ({members.length || team.member_count || 0}/{team.max_members})
+                      Members ({members.length || team.member_count || 0}/
+                      {team.max_members})
                     </h3>
                   </div>
 
                   <div className="space-y-3">
                     {members.length > 0 ? (
                       members.map((member) => {
-                        const isOwner = String(member.role).toLowerCase() === "owner";
+                        const isOwner =
+                          String(member.role).toLowerCase() === "owner";
 
                         return (
                           <div
@@ -249,13 +303,18 @@ export default function TeamWorkspace() {
                             className="flex items-center gap-3 rounded-xl bg-[#0d8a99] px-3 py-3"
                           >
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#11c8a1] text-sm font-bold text-white">
-                              {getInitial(member.username)}
+                              {getInitial(
+                                member.username || member.user?.username
+                              )}
                             </div>
 
                             <div className="min-w-0">
                               <p className="truncate text-sm font-semibold text-white">
-                                {member.username || "Unknown user"}
+                                {member.username ||
+                                  member.user?.username ||
+                                  "Unknown user"}
                               </p>
+
                               <p className="text-xs text-[#63e0b5]">
                                 {isOwner ? "Creator" : "Member"}
                               </p>
@@ -271,101 +330,25 @@ export default function TeamWorkspace() {
               </aside>
 
               <section className="rounded-[18px] border border-white/30 bg-[#0b6f95]/92 p-5 shadow-xl">
-                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h1 className="text-4xl font-bold text-white">Team Overview</h1>
-                    <p className="mt-2 text-sm text-white/75">{team.name}</p>
-                  </div>
+                {activeTab === "overview" && (
+                  <OverviewTab team={team} availableSpots={availableSpots} />
+                )}
 
-                  <button
-                    type="button"
-                    className="rounded-xl bg-[#12c39b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#16d1a7]"
-                  >
-                    Start Video Call
-                  </button>
-                </div>
+                {activeTab === "goals" && <GoalsTab teamId={team.id} />}
 
-                <div className="mb-5 h-px bg-white/20" />
+                {activeTab === "files" && <FilesTab teamId={team.id} />}
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <StatCard label="Members" value={team.member_count || 0} />
-                  <StatCard label="Available Spots" value={availableSpots} />
-                  <StatCard
-                    label="Days Active"
-                    value={
-                      team.created_at
-                        ? Math.max(
-                            Math.floor(
-                              (new Date() - new Date(team.created_at)) /
-                                (1000 * 60 * 60 * 24)
-                            ),
-                            1
-                          )
-                        : 1
-                    }
+                {activeTab === "schedule" && <ScheduleTab teamId={team.id} />}
+
+                {activeTab === "settings" && (
+                  <SettingsTab
+                    teamId={team.id}
+                    team={team}
+                    members={members}
+                    isOwner={isCurrentUserOwner}
+                    onTeamUpdated={loadWorkspaceData}
                   />
-                  <StatCard label="Conditions" value={team.conditions_to_join?.length || 0} />
-                </div>
-
-                <div className="mt-5 rounded-[18px] bg-[#0d8a99] p-5">
-                  <h2 className="text-2xl font-bold text-white">About This Team</h2>
-
-                  <p className="mt-4 text-base leading-8 text-white/92">
-                    {team.description || "No team description provided."}
-                  </p>
-
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {(team.conditions_to_join?.length
-                      ? team.conditions_to_join
-                      : ["No special conditions"]
-                    ).map((condition) => (
-                      <span
-                        key={condition}
-                        className="rounded-full bg-[#0f7f9a] px-3.5 py-2 text-xs font-medium text-[#f1f3b0]"
-                      >
-                        {condition}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="mt-6 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-xl bg-white/10 p-4">
-                      <p className="text-xs uppercase tracking-wide text-white/65">
-                        Communication
-                      </p>
-                      <p className="mt-2 text-sm font-semibold text-white">
-                        {team.communication_method || "Not specified"}
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl bg-white/10 p-4">
-                      <p className="text-xs uppercase tracking-wide text-white/65">
-                        Schedule
-                      </p>
-                      <p className="mt-2 text-sm font-semibold text-white">
-                        {team.meeting_frequency || "Not specified"}
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl bg-white/10 p-4">
-                      <p className="text-xs uppercase tracking-wide text-white/65">
-                        Timezone
-                      </p>
-                      <p className="mt-2 text-sm font-semibold text-white">
-                        {team.timezone || "Not specified"}
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl bg-white/10 p-4">
-                      <p className="text-xs uppercase tracking-wide text-white/65">
-                        Created
-                      </p>
-                      <p className="mt-2 text-sm font-semibold text-white">
-                        {formatRelativeDate(team.created_at)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                )}
               </section>
 
               <aside className="rounded-[18px] border border-white/30 bg-[#0b6f95]/92 p-0 shadow-xl">
@@ -373,25 +356,38 @@ export default function TeamWorkspace() {
                   <h3 className="text-2xl font-bold text-white">Team Chat</h3>
 
                   <div className="flex gap-2">
-                    <button className="rounded-lg border border-white/25 px-3 py-2 text-sm text-white">
+                    <button
+                      type="button"
+                      className="rounded-lg border border-white/25 px-3 py-2 text-sm text-white"
+                    >
                       📹
                     </button>
-                    <button className="rounded-lg border border-white/25 px-3 py-2 text-sm text-white">
+
+                    <button
+                      type="button"
+                      className="rounded-lg border border-white/25 px-3 py-2 text-sm text-white"
+                    >
                       📞
                     </button>
                   </div>
                 </div>
 
-                <div ref={chatContainerRef} className="h-[520px] overflow-y-auto px-4 py-4">
+                <div
+                  ref={chatContainerRef}
+                  className="h-[520px] overflow-y-auto px-4 py-4"
+                >
                   <div className="space-y-5">
                     {messages.length > 0 ? (
                       messages.map((message) => {
-                        const isMine = Number(message.user_id) === Number(currentUserId);
+                        const isMine =
+                          Number(message.user_id) === Number(currentUserId);
 
                         return (
                           <div
                             key={message.id}
-                            className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                            className={`flex ${
+                              isMine ? "justify-end" : "justify-start"
+                            }`}
                           >
                             <div
                               className={`flex max-w-[82%] items-end gap-3 ${
@@ -399,27 +395,40 @@ export default function TeamWorkspace() {
                               }`}
                             >
                               <div
-                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-[#0a6787] ${
-                                  isMine ? "bg-[#efe8a7] text-[#0b6f95]" : "bg-[#11c8a1]"
+                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                                  isMine
+                                    ? "bg-[#efe8a7] text-[#0b6f95]"
+                                    : "bg-[#11c8a1] text-[#0a6787]"
                                 }`}
                               >
                                 {isMine ? "Y" : getInitial(message.username)}
                               </div>
 
-                              <div className={`${isMine ? "items-end" : "items-start"} flex flex-col`}>
+                              <div
+                                className={`flex flex-col ${
+                                  isMine ? "items-end" : "items-start"
+                                }`}
+                              >
                                 <div
                                   className={`mb-1 flex items-center gap-2 ${
                                     isMine ? "flex-row-reverse" : "flex-row"
                                   }`}
                                 >
                                   <p className="text-sm font-semibold text-white">
-                                    {isMine ? "You" : message.username || "Unknown user"}
+                                    {isMine
+                                      ? "You"
+                                      : message.username || "Unknown user"}
                                   </p>
+
                                   <span className="text-xs text-white/50">
-                                    {new Date(message.created_at).toLocaleTimeString([], {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
+                                    {message.created_at
+                                      ? new Date(
+                                          message.created_at
+                                        ).toLocaleTimeString([], {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        })
+                                      : ""}
                                   </span>
                                 </div>
 
@@ -453,6 +462,7 @@ export default function TeamWorkspace() {
                       placeholder="Type a message..."
                       className="flex-1 rounded-xl border border-white/20 bg-[#0d8a99] px-4 py-3 text-sm text-white placeholder:text-white/60 outline-none"
                     />
+
                     <button
                       type="button"
                       onClick={handleSendMessage}

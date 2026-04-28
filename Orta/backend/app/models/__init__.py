@@ -3,3 +3,7 @@ from .join_req import JoinRequest
 from .team import Team
 from .team_member import TeamMember
 from .user import User
+from app.models.team_goal import TeamGoal
+from app.models.team_schedule import TeamScheduleEvent
+from app.models.team_file import TeamFile
+from app.models.team_message import TeamMessage

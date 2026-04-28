@@ -241,3 +241,377 @@ export async function getTeamMessages(teamId) {
 
   return data;
 }
+
+
+
+function getToken() {
+  return localStorage.getItem("token");
+}
+
+export async function requestToJoinTeam(teamId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/join`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to send join request");
+  }
+
+  return data;
+}
+
+export async function getTeamJoinRequests(teamId) {
+  const response = await fetch(`${API_URL}/join-requests/team/${teamId}`, {
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to load join requests");
+  }
+
+  return data;
+}
+
+export async function acceptJoinRequest(requestId) {
+  const response = await fetch(`${API_URL}/join-requests/${requestId}/accept`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to accept request");
+  }
+
+  return data;
+}
+
+export async function rejectJoinRequest(requestId) {
+  const response = await fetch(`${API_URL}/join-requests/${requestId}/reject`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to reject request");
+  }
+
+  return data;
+}
+
+export async function getTeamFiles(teamId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/files`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to load files");
+  }
+
+  return data;
+}
+
+export async function uploadTeamFile(teamId, file) {
+  const token = localStorage.getItem("token");
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/files`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to upload file");
+  }
+
+  return data;
+}
+
+export async function deleteTeamFile(teamId, fileId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/files/${fileId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.detail || "Failed to delete file");
+  }
+
+  return true;
+}
+
+
+export async function getTeamGoals(teamId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/goals`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to load goals");
+  }
+
+  return data;
+}
+
+export async function createTeamGoal(teamId, goalData) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/goals`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(goalData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to create goal");
+  }
+
+  return data;
+}
+
+export async function updateTeamGoal(teamId, goalId, updateData) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/goals/${goalId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(updateData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to update goal");
+  }
+
+  return data;
+}
+
+export async function deleteTeamGoal(teamId, goalId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/goals/${goalId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.detail || "Failed to delete goal");
+  }
+
+  return true;
+}
+
+export async function getTeamSchedule(teamId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/schedule`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to load schedule");
+  }
+
+  return data;
+}
+
+export async function createTeamScheduleEvent(teamId, eventData) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/schedule`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(eventData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to create schedule event");
+  }
+
+  return data;
+}
+
+export async function updateTeamScheduleEvent(teamId, eventId, updateData) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/schedule/${eventId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(updateData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to update schedule event");
+  }
+
+  return data;
+}
+
+export async function deleteTeamScheduleEvent(teamId, eventId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/schedule/${eventId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.detail || "Failed to delete schedule event");
+  }
+
+  return true;
+}
+
+export async function updateTeam(teamId, teamData) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(teamData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to update team");
+  }
+
+  return data;
+}
+
+export async function updateTeamMemberRole(teamId, memberId, role) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/members/${memberId}/role`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ role }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to update member role");
+  }
+
+  return data;
+}
+
+export async function removeTeamMember(teamId, memberId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/members/${memberId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.detail || "Failed to remove member");
+  }
+
+  return true;
+}
+
+export async function transferTeamOwnership(teamId, newOwnerMemberId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/teams/${teamId}/transfer-ownership`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      new_owner_member_id: newOwnerMemberId,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to transfer ownership");
+  }
+
+  return data;
+}

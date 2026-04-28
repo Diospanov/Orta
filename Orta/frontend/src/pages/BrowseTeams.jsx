@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { getAllTeams, joinTeam } from "../api";
+import { getAllTeams, requestToJoinTeam } from "../api";
 
 function formatRelativeDate(dateString) {
   if (!dateString) return "Recently created";
@@ -63,9 +63,12 @@ function StatItem({ label, value }) {
   );
 }
 
-function TeamCard({ team, onJoin }) {
+function TeamCard({ team, onJoin, requesting }) {
   const spotsLeft = Math.max((team.max_members || 0) - (team.member_count || 0), 0);
   const createdLabel = formatRelativeDate(team.created_at);
+  const requestStatus = String(team.join_request_status || team.request_status || "").toUpperCase();
+  const hasPendingRequest = requestStatus === "PENDING";
+  const isFull = spotsLeft <= 0;
 
   return (
     <div className="rounded-[22px] border border-white/30 bg-[#0a6f95]/88 p-5 shadow-xl backdrop-blur-sm transition duration-200 hover:-translate-y-1 hover:bg-[#0b769d]/90">
@@ -149,13 +152,21 @@ function TeamCard({ team, onJoin }) {
           >
             Joined
           </button>
+        ) : hasPendingRequest ? (
+          <button
+            disabled
+            className="rounded-xl bg-[#efe8a7] px-5 py-2.5 text-sm font-semibold text-[#0a6787] md:px-6 md:py-3"
+          >
+            Request Sent
+          </button>
         ) : (
           <button
             type="button"
             onClick={() => onJoin(team.id)}
-            className="rounded-xl bg-[#12c39b] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#16d1a7] md:px-6 md:py-3"
+            disabled={requesting || isFull}
+            className="rounded-xl bg-[#12c39b] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#16d1a7] disabled:cursor-not-allowed disabled:opacity-60 md:px-6 md:py-3"
           >
-            Join Team
+            {requesting ? "Sending..." : isFull ? "Full" : "Request to Join"}
           </button>
         )}
       </div>
@@ -169,6 +180,7 @@ export default function BrowseTeams() {
   const [visibility, setVisibility] = useState("all");
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [requestingTeamId, setRequestingTeamId] = useState(null);
 
   const PAGE_SIZE = 9;
   const [page, setPage] = useState(1);
@@ -206,23 +218,34 @@ export default function BrowseTeams() {
 
   const handleJoin = async (teamId) => {
     try {
-      const result = await joinTeam(teamId);
+      setRequestingTeamId(teamId);
 
-      setTeams((prev) =>
-        prev.map((team) =>
-          team.id === teamId
-            ? {
-                ...team,
-                is_member: true,
-                member_count: team.member_count + 1,
-              }
-            : team
-        )
+      const result = await requestToJoinTeam(teamId);
+
+      setTeams((prevTeams) =>
+        prevTeams.map((team) => {
+          if (team.id !== teamId) return team;
+
+          if (result.join_request || !team.is_public) {
+            return {
+              ...team,
+              join_request_status: "PENDING",
+            };
+          }
+
+          return {
+            ...team,
+            is_member: true,
+            member_count: (team.member_count || 0) + 1,
+          };
+        })
       );
 
-      alert(result.message || "Joined successfully");
+      alert(result.message || "Request sent successfully");
     } catch (error) {
-      alert(error.message || "Failed to join team");
+      alert(error.message || "Failed to send join request");
+    } finally {
+      setRequestingTeamId(null);
     }
   };
 
@@ -339,7 +362,12 @@ export default function BrowseTeams() {
           <>
             <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {filteredTeams.map((team) => (
-                <TeamCard key={team.id} team={team} onJoin={handleJoin} />
+                <TeamCard
+                  key={team.id}
+                  team={team}
+                  onJoin={handleJoin}
+                  requesting={requestingTeamId === team.id}
+                />
               ))}
             </div>
 

@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import get_db
+from app.core.database import get_db, async_session
 from app.core.ws_manager import team_chat_manager
 from app.core.dependencies import get_current_user, get_current_user_optional, get_user_from_websocket_token
 from app.models.user import User
@@ -140,30 +140,33 @@ async def get_team_messages(
 async def team_chat_ws(
     websocket: WebSocket,
     team_id: int,
-    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     print("WS connect attempt for team:", team_id)
 
     token = websocket.query_params.get("token")
     print("WS token exists:", bool(token))
 
-    user = await get_user_from_websocket_token(db, token)
-    print("WS user:", user.username if user else None)
+    async with async_session() as db:
+        user = await get_user_from_websocket_token(db, token)
+        print("WS user:", user.username if user else None)
 
-    if not user:
-        print("WS close: invalid user")
-        await websocket.close(code=1008)
-        return
+        if not user:
+            print("WS close: invalid user")
+            await websocket.close(code=1008)
+            return
 
-    try:
-        await team_chat_service.ensure_member(db, user, team_id)
-    except HTTPException as e:
-        print("WS close: not member", e.detail)
-        await websocket.close(code=1008)
-        return
+        try:
+            await team_chat_service.ensure_member(db, user, team_id)
+        except HTTPException as e:
+            print("WS close: not member", e.detail)
+            await websocket.close(code=1008)
+            return
+
+        user_id = user.id
+        username = user.username
 
     await team_chat_manager.connect(team_id, websocket)
-    print(f"WS connected: user={user.username}, team={team_id}")
+    print(f"WS connected: user={username}, team={team_id}")
 
     try:
         while True:
@@ -179,12 +182,22 @@ async def team_chat_ws(
                 })
                 continue
 
-            message = await team_chat_service.create_message(
-                db=db,
-                current_user=user,
-                team_id=team_id,
-                content=content,
-            )
+            async with async_session() as db:
+                current_user = await db.get(User, user_id)
+
+                if not current_user:
+                    await websocket.send_json({
+                        "type": "error",
+                        "detail": "User no longer exists",
+                    })
+                    continue
+
+                message = await team_chat_service.create_message(
+                    db=db,
+                    current_user=current_user,
+                    team_id=team_id,
+                    content=content,
+                )
 
             print("WS broadcasting:", message)
 
@@ -197,5 +210,11 @@ async def team_chat_ws(
             )
 
     except WebSocketDisconnect:
-        print(f"WS disconnected: user={user.username}, team={team_id}")
+        print(f"WS disconnected: user={username}, team={team_id}")
+
+    except Exception as e:
+        print("WS error:", e)
+        await websocket.close(code=1011)
+
+    finally:
         team_chat_manager.disconnect(team_id, websocket)
