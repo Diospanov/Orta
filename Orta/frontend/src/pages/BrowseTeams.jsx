@@ -131,7 +131,7 @@ function TeamCard({ team, onJoin, requesting }) {
         <StatItem label="Timezone" value={team.timezone || "Not specified"} />
       </div>
 
-      <div className="mt-5 flex items-center justify-between gap-4">
+      <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#7a4dff] text-sm font-bold text-white">
             {getInitial(team.owner_name)}
@@ -148,14 +148,14 @@ function TeamCard({ team, onJoin, requesting }) {
         {team.is_member ? (
           <button
             disabled
-            className="rounded-xl bg-white/20 px-5 py-2.5 text-sm font-semibold text-white/75 md:px-6 md:py-3"
+            className="w-full rounded-xl bg-white/20 px-5 py-2.5 text-sm font-semibold text-white/75 sm:w-auto md:px-6 md:py-3"
           >
             Joined
           </button>
         ) : hasPendingRequest ? (
           <button
             disabled
-            className="rounded-xl bg-[#efe8a7] px-5 py-2.5 text-sm font-semibold text-[#0a6787] md:px-6 md:py-3"
+            className="w-full rounded-xl bg-[#efe8a7] px-5 py-2.5 text-sm font-semibold text-[#0a6787] sm:w-auto md:px-6 md:py-3"
           >
             Request Sent
           </button>
@@ -164,7 +164,7 @@ function TeamCard({ team, onJoin, requesting }) {
             type="button"
             onClick={() => onJoin(team.id)}
             disabled={requesting || isFull}
-            className="rounded-xl bg-[#12c39b] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#16d1a7] disabled:cursor-not-allowed disabled:opacity-60 md:px-6 md:py-3"
+            className="w-full rounded-xl bg-[#12c39b] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#16d1a7] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto md:px-6 md:py-3"
           >
             {requesting ? "Sending..." : isFull ? "Full" : "Request to Join"}
           </button>
@@ -337,7 +337,7 @@ export default function BrowseTeams() {
           </div>
         </form>
 
-        <div className="mt-8 flex items-center justify-between">
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-2xl font-bold uppercase md:text-3xl">
             Available Teams
           </h2>
@@ -372,7 +372,7 @@ export default function BrowseTeams() {
             </div>
 
             {pages > 1 && (
-              <div className="mt-10 flex items-center justify-center gap-4">
+              <div className="mt-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
                 <button
                   type="button"
                   disabled={page <= 1}

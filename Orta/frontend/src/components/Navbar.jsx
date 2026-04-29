@@ -33,15 +33,15 @@ export default function Navbar() {
   };
 
   return (
-    <header className="flex items-center justify-between px-8 py-6">
+    <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-4 px-4 py-5 sm:px-6 lg:px-8">
       <Link
         to="/"
-        className="text-4xl font-extrabold tracking-wider text-white"
+        className="text-3xl font-extrabold tracking-wider text-white sm:text-4xl"
       >
         ORTA
       </Link>
 
-      <nav className="flex items-center gap-10 text-sm font-medium tracking-wide">
+      <nav className="order-3 flex w-full items-center justify-center gap-4 overflow-x-auto whitespace-nowrap pb-1 text-xs font-medium tracking-wide sm:order-none sm:w-auto sm:gap-6 sm:pb-0 sm:text-sm lg:gap-10">
         <Link to="/browse-teams" className={linkClass("/browse-teams")}>
           BROWSE TEAMS
         </Link>
@@ -59,14 +59,16 @@ export default function Navbar() {
         )}
       </nav>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         {isAuthenticated && user ? (
           <>
             <Link
               to="/profile"
-              className="flex items-center gap-3 text-sm font-medium text-white"
+              className="flex min-w-0 items-center gap-2 text-sm font-medium text-white sm:gap-3"
             >
-              {user.full_name || user.username}
+              <span className="hidden max-w-32 truncate sm:inline lg:max-w-48">
+                {user.full_name || user.username}
+              </span>
 
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1e4fff] font-semibold transition hover:scale-110">
                 {getInitials()}
@@ -75,7 +77,7 @@ export default function Navbar() {
 
             <button
               onClick={handleLogout}
-              className="rounded-xl bg-[#10c7b0] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#0eb39e]"
+              className="rounded-xl bg-[#10c7b0] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#0eb39e] sm:px-4"
             >
               Logout
             </button>
@@ -84,14 +86,14 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             <Link
               to="/login"
-              className="rounded-xl bg-[#10c7b0] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#0eb39e]"
+              className="rounded-xl bg-[#10c7b0] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#0eb39e] sm:px-4"
             >
               Login
             </Link>
 
             <Link
               to="/register"
-              className="rounded-xl border border-white px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+              className="rounded-xl border border-white px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10 sm:px-4"
             >
               Register
             </Link>

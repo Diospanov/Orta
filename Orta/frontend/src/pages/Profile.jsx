@@ -123,8 +123,8 @@ const activities = [
 
 function Panel({ title, rightText, children }) {
   return (
-    <div className="rounded-[26px] border border-[#d8d2a0] bg-[#0f6f95]/95 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.18)] backdrop-blur-sm">
-      <div className="mb-4 flex items-center justify-between gap-4 border-b border-[#d8d2a0] pb-3">
+    <div className="rounded-[26px] border border-[#d8d2a0] bg-[#0f6f95]/95 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.18)] backdrop-blur-sm sm:p-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[#d8d2a0] pb-3">
         <h2 className="text-[20px] font-semibold text-white md:text-[22px]">
           {title}
         </h2>
@@ -236,10 +236,10 @@ export default function Profile() {
       >
         <Navbar />
 
-        <main className="mx-auto max-w-[1450px] px-6 pb-10 pt-4 md:px-8 xl:px-10">
+        <main className="mx-auto max-w-[1450px] px-4 pb-10 pt-4 sm:px-6 md:px-8 xl:px-10">
           <div className="grid gap-6 xl:grid-cols-4">
             <aside className="space-y-6 xl:col-span-1">
-              <div className="rounded-[28px] border border-[#d8d2a0] bg-[#0f6f95]/95 p-6 text-white shadow-[0_8px_30px_rgba(0,0,0,0.18)]">
+              <div className="rounded-[28px] border border-[#d8d2a0] bg-[#0f6f95]/95 p-4 text-white shadow-[0_8px_30px_rgba(0,0,0,0.18)] sm:p-6">
                 <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 border-[#f5efbf] bg-[#1752d2] text-5xl font-bold">
                   {getInitials()}
                 </div>
@@ -253,17 +253,17 @@ export default function Profile() {
 
                 <div className="my-5 border-t border-[#d8d2a0]/70" />
 
-                <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
                   <div>
-                    <div className="text-4xl font-bold text-[#f5efbf]">12</div>
+                    <div className="text-2xl font-bold text-[#f5efbf] sm:text-4xl">12</div>
                     <div className="mt-1 text-xs text-white/70">Teams</div>
                   </div>
                   <div>
-                    <div className="text-4xl font-bold text-[#f5efbf]">47</div>
+                    <div className="text-2xl font-bold text-[#f5efbf] sm:text-4xl">47</div>
                     <div className="mt-1 text-xs text-white/70">Tasks</div>
                   </div>
                   <div>
-                    <div className="text-4xl font-bold text-[#f5efbf]">
+                    <div className="text-2xl font-bold text-[#f5efbf] sm:text-4xl">
                       {profile.is_active ? "Yes" : "No"}
                     </div>
                     <div className="mt-1 text-xs text-white/70">Active</div>
@@ -358,21 +358,21 @@ export default function Profile() {
                   <div className="space-y-8">
                     <div>
                       <div className="text-sm text-white/60">Full Name</div>
-                      <div className="mt-2 text-[24px] font-medium">
+                      <div className="mt-2 break-words text-lg font-medium sm:text-[24px]">
                         {profile.full_name || "-"}
                       </div>
                     </div>
 
                     <div>
                       <div className="text-sm text-white/60">Username</div>
-                      <div className="mt-2 text-[24px] font-medium">
+                      <div className="mt-2 break-words text-lg font-medium sm:text-[24px]">
                         {profile.username}
                       </div>
                     </div>
 
                     <div>
                       <div className="text-sm text-white/60">Role</div>
-                      <div className="mt-2 text-[24px] font-medium">
+                      <div className="mt-2 break-words text-lg font-medium sm:text-[24px]">
                         {profile.role}
                       </div>
                     </div>
@@ -381,21 +381,21 @@ export default function Profile() {
                   <div className="space-y-8">
                     <div>
                       <div className="text-sm text-white/60">Email</div>
-                      <div className="mt-2 text-[24px] font-medium">
+                      <div className="mt-2 break-words text-lg font-medium sm:text-[24px]">
                         {profile.email}
                       </div>
                     </div>
 
                     <div>
                       <div className="text-sm text-white/60">Joined Orta</div>
-                      <div className="mt-2 text-[24px] font-medium">
+                      <div className="mt-2 break-words text-lg font-medium sm:text-[24px]">
                         {formatDate(profile.created_at)}
                       </div>
                     </div>
 
                     <div>
                       <div className="text-sm text-white/60">Account Status</div>
-                      <div className="mt-2 text-[24px] font-medium">
+                      <div className="mt-2 break-words text-lg font-medium sm:text-[24px]">
                         {profile.is_active ? "Active" : "Inactive"}
                       </div>
                     </div>
@@ -457,12 +457,12 @@ export default function Profile() {
                       key={activity.title}
                       className="border-b border-white/15 pb-5 last:border-b-0"
                     >
-                      <div className="flex gap-4">
-                        <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-[#11c9b1] text-lg">
+                      <div className="flex gap-3 sm:gap-4">
+                        <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#11c9b1] text-lg">
                           ✨
                         </div>
-                        <div>
-                          <h3 className="text-[20px] font-semibold">
+                        <div className="min-w-0">
+                          <h3 className="break-words text-lg font-semibold sm:text-[20px]">
                             {activity.title}
                           </h3>
                           <p className="mt-1 text-white/70">{activity.desc}</p>

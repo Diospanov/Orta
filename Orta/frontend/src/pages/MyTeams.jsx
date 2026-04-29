@@ -67,7 +67,7 @@ function TeamCard({ team, onLeave, leaving }) {
   const spotsLeft = Math.max((team.max_members || 0) - (team.member_count || 0), 0);
 
   return (
-    <div className="rounded-[22px] border border-white/30 bg-[#0b6f95]/88 p-6 shadow-xl backdrop-blur-sm transition duration-200 hover:-translate-y-1 hover:bg-[#0d749b]/90">
+    <div className="rounded-[22px] border border-white/30 bg-[#0b6f95]/88 p-5 shadow-xl backdrop-blur-sm transition duration-200 hover:-translate-y-1 hover:bg-[#0d749b]/90 sm:p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           <Badge variant="green">{team.category || "General"}</Badge>
@@ -80,7 +80,7 @@ function TeamCard({ team, onLeave, leaving }) {
         </Badge>
       </div>
 
-      <h3 className="text-[28px] font-bold leading-[1.15] text-white">
+      <h3 className="text-2xl font-bold leading-[1.15] text-white sm:text-[28px]">
         {team.name}
       </h3>
 
@@ -119,24 +119,24 @@ function TeamCard({ team, onLeave, leaving }) {
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#7a4dff] text-sm font-semibold text-white">
+      <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#7a4dff] text-sm font-semibold text-white">
             {getInitial(team.owner_name)}
           </div>
 
-          <div>
-            <p className="text-sm font-semibold text-white">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">
               {team.owner_name || "Unknown owner"}
             </p>
             <p className="text-xs text-white/70">Team owner</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Link
             to={`/teams/${team.id}`}
-            className="rounded-xl border border-[#d8d2a0] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
+            className="rounded-xl border border-[#d8d2a0] px-4 py-2.5 text-center text-sm font-medium text-white transition hover:bg-white/10"
           >
             Open Team
           </Link>

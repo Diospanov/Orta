@@ -1,8 +1,8 @@
 export default function Footer() {
   return (
-    <footer className="bg-[#d9ddb0] text-[#0d5f7a] px-10 pt-16 pb-10">
+    <footer className="bg-[#d9ddb0] px-4 pb-10 pt-10 text-[#0d5f7a] sm:px-6 sm:pt-16 lg:px-10">
       
-      <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-12 items-start">
+      <div className="mx-auto grid max-w-7xl items-start gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12">
 
         <div>
           <h3 className="text-2xl font-semibold mb-4">Orta</h3>
@@ -44,13 +44,14 @@ export default function Footer() {
 
           <img
             src="/flower.png"
-            className="absolute -bottom-6 right-0 w-32 md:w-40"
+            alt=""
+            className="absolute -bottom-6 right-0 w-24 sm:w-32 md:w-40"
           />
         </div>
 
       </div>
 
-      <p className="text-center mt-16 text-sm">
+      <p className="mt-12 text-center text-sm sm:mt-16">
         © 2026 Orta. All rights reserved.
       </p>
 

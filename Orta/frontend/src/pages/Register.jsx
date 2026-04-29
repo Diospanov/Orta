@@ -33,9 +33,9 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#0e7397]">
-      <div className="mx-auto flex min-h-screen max-w-[1500px] items-center justify-between px-6 py-8 md:px-10 -translate-x-75">
-        <div className="hidden lg:flex lg:w-1/2 items-end justify-center overflow-hidden">
+    <div className="min-h-screen overflow-x-hidden bg-[#0e7397]">
+      <div className="mx-auto flex min-h-screen max-w-[1500px] items-center justify-center gap-8 px-4 py-8 sm:px-6 md:px-10 lg:justify-between">
+        <div className="hidden items-end justify-center overflow-hidden lg:flex lg:w-1/2">
           <img
             src="/register-character.png"
             alt="register character"
@@ -44,8 +44,8 @@ export default function Register() {
         </div>
 
         <div className="flex w-full justify-center lg:w-1/2">
-          <div className="w-full max-w-[700px] rounded-[30px] bg-[#18b8ab] px-8 py-10 text-white shadow-[0_10px_40px_rgba(0,0,0,0.18)] md:px-12">
-            <h1 className="text-center text-5xl font-medium uppercase leading-[1.02] tracking-[0.08em] md:text-6xl">
+          <div className="w-full max-w-[700px] rounded-[30px] bg-[#18b8ab] px-6 py-8 text-white shadow-[0_10px_40px_rgba(0,0,0,0.18)] sm:px-8 sm:py-10 md:px-12">
+            <h1 className="text-center text-3xl font-medium uppercase leading-[1.08] tracking-[0.08em] sm:text-5xl md:text-6xl">
               Create an <span className="font-extrabold">Orta</span>
               <br />
               account
@@ -55,7 +55,7 @@ export default function Register() {
               Fill in your personal details to access teams and lobbies
             </p>
 
-            <form onSubmit={handleRegister} className="mt-10">
+            <form onSubmit={handleRegister} className="mt-8 sm:mt-10">
               <div>
                 <label className="mb-2 block text-lg font-medium">Email</label>
                 <input

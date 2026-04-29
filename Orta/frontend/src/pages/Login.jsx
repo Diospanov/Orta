@@ -25,11 +25,11 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#18b3a6]">
-      <div className="mx-auto flex min-h-screen max-w-[1500px] items-center justify-between px-6 py-8 md:px-10 translate-x-90">
-        <div className="flex w-full items-center justify-center lg:w-1/2">  
-          <div className="w-full max-w-[620px] rounded-[30px] bg-[#0f6784] px-10 py-12 text-white shadow-[0_10px_40px_rgba(0,0,0,0.18)] md:px-14">
-            <h1 className="text-center text-5xl font-medium uppercase leading-[1.02] tracking-[0.08em] md:text-6xl">
+    <div className="min-h-screen overflow-x-hidden bg-[#18b3a6]">
+      <div className="mx-auto flex min-h-screen max-w-[1500px] items-center justify-center gap-8 px-4 py-8 sm:px-6 md:px-10 lg:justify-between">
+        <div className="flex w-full items-center justify-center lg:w-1/2">
+          <div className="w-full max-w-[620px] rounded-[30px] bg-[#0f6784] px-6 py-8 text-white shadow-[0_10px_40px_rgba(0,0,0,0.18)] sm:px-10 sm:py-10 md:px-14 md:py-12">
+            <h1 className="text-center text-3xl font-medium uppercase leading-[1.08] tracking-[0.08em] sm:text-5xl md:text-6xl">
               Welcome back
               <br />
               to <span className="font-extrabold">Orta</span>
@@ -39,7 +39,7 @@ export default function Login() {
               Welcome back! Please enter your details
             </p>
 
-            <form onSubmit={handleSubmit} className="mt-10">
+            <form onSubmit={handleSubmit} className="mt-8 sm:mt-10">
               <div>
                 <label className="mb-2 block text-lg font-medium">Email</label>
                 <input
@@ -89,7 +89,7 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="hidden lg:flex lg:w-1/2 items-end justify-center overflow-hidden">
+        <div className="hidden items-end justify-center overflow-hidden lg:flex lg:w-1/2">
           <img
             src="/leaf-character.png"
             alt="leaf character"

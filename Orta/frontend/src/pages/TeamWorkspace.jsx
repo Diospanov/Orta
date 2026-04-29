@@ -220,7 +220,7 @@ export default function TeamWorkspace() {
       >
         <Navbar />
 
-        <main className="mx-auto max-w-7xl px-4 pb-16 pt-8 md:px-6">
+        <main className="mx-auto max-w-7xl px-4 pb-16 pt-6 md:px-6 md:pt-8">
           {loading ? (
             <p className="mt-10 text-center text-lg">Loading workspace...</p>
           ) : errorMessage ? (
@@ -239,7 +239,7 @@ export default function TeamWorkspace() {
           ) : !team ? (
             <p className="mt-10 text-center">Team not found.</p>
           ) : (
-            <div className="grid gap-5 xl:grid-cols-[0.9fr_1.8fr_1.05fr]">
+            <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[0.9fr_1.8fr_1.05fr]">
               <aside className="space-y-4">
                 <div className="rounded-[18px] border border-white/30 bg-[#0b6f95]/92 p-4 shadow-xl">
                   <h3 className="mb-4 text-xl font-bold text-white">
@@ -337,7 +337,7 @@ export default function TeamWorkspace() {
                 </div>
               </aside>
 
-              <section className="rounded-[18px] border border-white/30 bg-[#0b6f95]/92 p-5 shadow-xl">
+              <section className="min-w-0 rounded-[18px] border border-white/30 bg-[#0b6f95]/92 p-4 shadow-xl sm:p-5">
                 {activeTab === "overview" && (
                   <OverviewTab team={team} availableSpots={availableSpots} />
                 )}
@@ -367,9 +367,9 @@ export default function TeamWorkspace() {
                 )}
               </section>
 
-              <aside className="rounded-[18px] border border-white/30 bg-[#0b6f95]/92 p-0 shadow-xl">
+              <aside className="min-w-0 rounded-[18px] border border-white/30 bg-[#0b6f95]/92 p-0 shadow-xl lg:col-span-2 xl:col-span-1">
                 <div className="flex items-center justify-between border-b border-white/20 px-4 py-4">
-                  <h3 className="text-2xl font-bold text-white">Team Chat</h3>
+                  <h3 className="text-xl font-bold text-white sm:text-2xl">Team Chat</h3>
 
                   <div className="flex gap-2">
                     <button
@@ -390,7 +390,7 @@ export default function TeamWorkspace() {
 
                 <div
                   ref={chatContainerRef}
-                  className="h-[520px] overflow-y-auto px-4 py-4"
+                  className="h-[380px] overflow-y-auto px-4 py-4 sm:h-[460px] xl:h-[520px]"
                 >
                   <div className="space-y-5">
                     {messages.length > 0 ? (
@@ -406,7 +406,7 @@ export default function TeamWorkspace() {
                             }`}
                           >
                             <div
-                              className={`flex max-w-[82%] items-end gap-3 ${
+                              className={`flex max-w-[92%] items-end gap-2 sm:max-w-[82%] sm:gap-3 ${
                                 isMine ? "flex-row-reverse" : "flex-row"
                               }`}
                             >
@@ -476,7 +476,7 @@ export default function TeamWorkspace() {
                       onChange={(e) => setMessageInput(e.target.value)}
                       onKeyDown={handleMessageKeyDown}
                       placeholder="Type a message..."
-                      className="flex-1 rounded-xl border border-white/20 bg-[#0d8a99] px-4 py-3 text-sm text-white placeholder:text-white/60 outline-none"
+                      className="min-w-0 flex-1 rounded-xl border border-white/20 bg-[#0d8a99] px-4 py-3 text-sm text-white placeholder:text-white/60 outline-none"
                     />
 
                     <button

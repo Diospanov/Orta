@@ -79,7 +79,7 @@ function formatFileSize(bytes) {
 
 function Card({ children, className = "" }) {
   return (
-    <div className={`rounded-[18px] bg-[#0d8a99] p-5 ${className}`}>
+    <div className={`rounded-[18px] bg-[#0d8a99] p-4 sm:p-5 ${className}`}>
       {children}
     </div>
   );
@@ -88,7 +88,7 @@ function Card({ children, className = "" }) {
 function SectionHeader({ title, subtitle }) {
   return (
     <div className="mb-5">
-      <h1 className="text-4xl font-bold text-white">{title}</h1>
+      <h1 className="break-words text-3xl font-bold text-white sm:text-4xl">{title}</h1>
       {subtitle && <p className="mt-2 text-sm text-white/75">{subtitle}</p>}
       <div className="mt-5 h-px bg-white/20" />
     </div>
@@ -395,7 +395,7 @@ export function GoalsTab({ teamId }) {
                     : "border-white/15 bg-white/10"
                 }`}
             >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-3">
                     <span className="text-2xl">
@@ -403,7 +403,7 @@ export function GoalsTab({ teamId }) {
                     </span>
 
                     <h3
-                        className={`text-lg font-bold ${
+                        className={`break-words text-lg font-bold ${
                         goal.completed
                             ? "text-white/50 line-through"
                             : "text-white"
@@ -432,7 +432,7 @@ export function GoalsTab({ teamId }) {
                     </div>
                 </div>
 
-                <div className="flex shrink-0 flex-col gap-2">
+                <div className="flex shrink-0 flex-col gap-2 sm:items-end">
                     <button
                     type="button"
                     onClick={() => toggleGoal(goal)}
@@ -566,7 +566,7 @@ export function FilesTab({ teamId }) {
           files.map((file) => (
             <div
               key={file.id}
-              className="flex items-center justify-between gap-4 rounded-2xl border border-white/15 bg-white/10 p-4"
+              className="flex flex-col gap-4 rounded-2xl border border-white/15 bg-white/10 p-4 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">
                 <p className="truncate text-lg font-bold text-white">
@@ -580,12 +580,12 @@ export function FilesTab({ teamId }) {
                 </p>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex w-full gap-2 sm:w-auto">
                 <a
                   href={file.file_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-lg bg-[#12c39b] px-3 py-2 text-sm font-semibold text-white hover:bg-[#16d1a7]"
+                  className="flex-1 rounded-lg bg-[#12c39b] px-3 py-2 text-center text-sm font-semibold text-white hover:bg-[#16d1a7] sm:flex-none"
                 >
                   Open
                 </a>
@@ -593,7 +593,7 @@ export function FilesTab({ teamId }) {
                 <button
                   type="button"
                   onClick={() => handleDelete(file.id)}
-                  className="rounded-lg bg-red-500/20 px-3 py-2 text-sm text-red-100 hover:bg-red-500/35"
+                  className="flex-1 rounded-lg bg-red-500/20 px-3 py-2 text-sm text-red-100 hover:bg-red-500/35 sm:flex-none"
                 >
                   Delete
                 </button>
@@ -745,12 +745,12 @@ export function ScheduleTab({ teamId }) {
               key={event.id}
               className="rounded-2xl border border-white/15 bg-white/10 p-4"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
                   <button
                     type="button"
                     onClick={() => toggleEvent(event)}
-                    className={`text-left text-lg font-bold ${
+                    className={`break-words text-left text-lg font-bold ${
                       event.completed ? "text-white/45 line-through" : "text-white"
                     }`}
                   >
@@ -867,7 +867,7 @@ export function RequestsTab({ teamId, canManage, onRequestAccepted }) {
       ) : (
         <>
           <Card>
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-white">
                   Pending Requests
@@ -930,12 +930,12 @@ export function RequestsTab({ teamId, canManage, onRequestAccepted }) {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex w-full gap-2 sm:w-auto">
                       <button
                         type="button"
                         onClick={() => handleAccept(request.id)}
                         disabled={actionId === request.id}
-                        className="rounded-xl bg-[#12c39b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#16d1a7] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="flex-1 rounded-xl bg-[#12c39b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#16d1a7] disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
                       >
                         Accept
                       </button>
@@ -944,7 +944,7 @@ export function RequestsTab({ teamId, canManage, onRequestAccepted }) {
                         type="button"
                         onClick={() => handleReject(request.id)}
                         disabled={actionId === request.id}
-                        className="rounded-xl bg-red-500/90 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="flex-1 rounded-xl bg-red-500/90 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
                       >
                         Reject
                       </button>
@@ -1332,7 +1332,7 @@ export function SettingsTab({
                       Owner
                     </span>
                   ) : (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
                       <select
                         value={member.role || "member"}
                         disabled={memberActionId === member.id}
