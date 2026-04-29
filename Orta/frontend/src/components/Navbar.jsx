@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 export default function Navbar() {
   const location = useLocation();
@@ -7,7 +7,7 @@ export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
 
   const linkClass = (path) =>
-    `transition ${
+    `text-[15px] font-normal tracking-[0.22em] uppercase transition ${
       location.pathname === path
         ? "text-[#10c7b0]"
         : "text-white hover:text-[#10c7b0]"
@@ -34,14 +34,11 @@ export default function Navbar() {
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-4 px-4 py-5 sm:px-6 lg:px-8">
-      <Link
-        to="/"
-        className="text-3xl font-extrabold tracking-wider text-white sm:text-4xl"
-      >
-        ORTA
+      <Link to="/" className="shrink-0">
+        <img src="/ORTA.svg" alt="logo" className="h-10 sm:h-12" />
       </Link>
 
-      <nav className="order-3 flex w-full items-center justify-center gap-4 overflow-x-auto whitespace-nowrap pb-1 text-xs font-medium tracking-wide sm:order-none sm:w-auto sm:gap-6 sm:pb-0 sm:text-sm lg:gap-10">
+      <nav className="order-3 flex w-full items-center justify-center gap-4 overflow-x-auto whitespace-nowrap pb-1 sm:order-none sm:w-auto sm:gap-6 sm:pb-0 lg:gap-10">
         <Link to="/browse-teams" className={linkClass("/browse-teams")}>
           BROWSE TEAMS
         </Link>

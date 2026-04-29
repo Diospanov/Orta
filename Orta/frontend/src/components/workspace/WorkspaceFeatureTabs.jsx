@@ -20,39 +20,6 @@ import {
   uploadTeamFile 
 } from "../../api";
 
-
-function storageKey(teamId, feature) {
-  return `orta-team-${teamId}-${feature}`;
-}
-
-function readStorage(teamId, feature) {
-  try {
-    const raw = localStorage.getItem(storageKey(teamId, feature));
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function useTeamStorage(teamId, feature) {
-  const [items, setItemsState] = useState(() => readStorage(teamId, feature));
-
-  useEffect(() => {
-    setItemsState(readStorage(teamId, feature));
-  }, [teamId, feature]);
-
-  const setItems = (updater) => {
-    setItemsState((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      localStorage.setItem(storageKey(teamId, feature), JSON.stringify(next));
-      return next;
-    });
-  };
-
-  return [items, setItems];
-}
-
 function formatDateTime(value) {
   if (!value) return "Not set";
 

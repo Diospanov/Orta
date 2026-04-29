@@ -1,8 +1,3 @@
-<img
-  src="/flower.png"
-  className="absolute -bottom-6 right-0 w-32 md:w-40"
-/>
-
 export default function Footer() {
   return (
     <footer className="bg-[#d9ddb0] text-[#0d5f7a] px-10 pt-16 pb-10">
@@ -47,7 +42,8 @@ export default function Footer() {
           </ul>
 
           <img
-            src={flower}
+            src="/flower.png"
+            alt=""
             className="absolute -bottom-6 right-0 w-32 md:w-40"
           />
         </div>

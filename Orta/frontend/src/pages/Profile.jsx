@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
@@ -353,7 +353,7 @@ export default function Profile() {
             </aside>
 
             <section className="space-y-6 xl:col-span-3">
-              <Panel title="Personal Information">
+              <Panel title="Personal Information" rightText="Edit">
                 <div className="grid gap-8 md:grid-cols-2">
                   <div className="space-y-8">
                     <div>
