@@ -1,19 +1,64 @@
 const API_URL = import.meta.env.VITE_API_URL;
 console.log("VITE_API_URL =", import.meta.env.VITE_API_URL);
 
+
+function getFastAPIErrorMessage(errorData) {
+  if (!errorData) return "Something went wrong";
+
+  if (typeof errorData === "string") {
+    return errorData;
+  }
+
+  const formatError = (err) => {
+    if (typeof err === "string") return err;
+
+    const field = Array.isArray(err.loc)
+      ? err.loc[err.loc.length - 1]
+      : null;
+
+    const message = err.msg || err.message || "Invalid value";
+
+    return field ? `${field}: ${message}` : message;
+  };
+
+  // FastAPI validation error
+  if (Array.isArray(errorData.detail)) {
+    return errorData.detail.map(formatError).join("\n");
+  }
+
+  // Normal FastAPI HTTPException
+  if (typeof errorData.detail === "string") {
+    return errorData.detail;
+  }
+
+  // Sometimes detail is one object
+  if (typeof errorData.detail === "object") {
+    return formatError(errorData.detail);
+  }
+
+  if (typeof errorData.message === "string") {
+    return errorData.message;
+  }
+
+  return "Something went wrong";
+}
+
 export async function loginUser(email, password) {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({
+      email: email.trim(),
+      password,
+    }),
   });
 
-  const data = await response.json();
+  const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(data.detail || "Login failed");
+    throw new Error(getFastAPIErrorMessage(data) || "Login failed");
   }
 
   return data;
@@ -47,10 +92,16 @@ export async function registerUser(userData) {
     body: JSON.stringify(userData),
   });
 
-  const data = await response.json();
+  let data = null;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
 
   if (!response.ok) {
-    throw new Error(data.detail || "Registration failed");
+    throw new Error(getFastAPIErrorMessage(data));
   }
 
   return data;

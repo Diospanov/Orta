@@ -165,13 +165,57 @@ async def team_chat_ws(
         user_id = user.id
         username = user.username
 
-    await team_chat_manager.connect(team_id, websocket)
+    await team_chat_manager.connect(team_id, user_id, websocket)
     print(f"WS connected: user={username}, team={team_id}")
 
     try:
         while True:
             data = await websocket.receive_json()
             print("WS received:", data)
+
+            content = str(data.get("content", "")).strip()
+
+            event_type = data.get("type", "chat_message")
+
+            call_event_types = {
+                "call_invite",
+                "call_accept",
+                "call_reject",
+                "call_end",
+                "webrtc_offer",
+                "webrtc_answer",
+                "ice_candidate",
+            }
+
+            if event_type in call_event_types:
+                target_user_id = data.get("target_user_id")
+
+                if not target_user_id:
+                    await websocket.send_json({
+                        "type": "error",
+                        "detail": "target_user_id is required for call events",
+                    })
+                    continue
+
+                payload = {
+                    **data,
+                    "from_user_id": user_id,
+                    "from_username": username,
+                }
+
+                sent = await team_chat_manager.send_to_user(
+                    team_id=team_id,
+                    user_id=int(target_user_id),
+                    payload=payload,
+                )
+
+                if not sent:
+                    await websocket.send_json({
+                        "type": "error",
+                        "detail": "User is not online in this team workspace",
+                    })
+
+                continue
 
             content = str(data.get("content", "")).strip()
 
@@ -217,4 +261,4 @@ async def team_chat_ws(
         await websocket.close(code=1011)
 
     finally:
-        team_chat_manager.disconnect(team_id, websocket)
+        team_chat_manager.disconnect(team_id, user_id, websocket)

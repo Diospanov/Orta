@@ -345,7 +345,7 @@ export default function Profile() {
 
               <div className="flex justify-center">
                 <img
-                  src="/leaf-character.png"
+                  src="/leaf-character.svg"
                   alt="leaf character"
                   className="w-[220px] md:w-[260px]"
                 />
