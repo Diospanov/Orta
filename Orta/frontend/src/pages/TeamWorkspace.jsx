@@ -239,7 +239,7 @@ export default function TeamWorkspace() {
           ) : !team ? (
             <p className="mt-10 text-center">Team not found.</p>
           ) : (
-            <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[0.9fr_1.8fr_1.05fr]">
+            <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[0.9fr_1.8fr_1.05fr] xl:items-start">
               <aside className="space-y-4">
                 <div className="rounded-[18px] border border-white/30 bg-[#0b6f95]/92 p-4 shadow-xl">
                   <h3 className="mb-4 text-xl font-bold text-white">
@@ -367,8 +367,8 @@ export default function TeamWorkspace() {
                 )}
               </section>
 
-              <aside className="min-w-0 rounded-[18px] border border-white/30 bg-[#0b6f95]/92 p-0 shadow-xl lg:col-span-2 xl:col-span-1">
-                <div className="flex items-center justify-between border-b border-white/20 px-4 py-4">
+              <aside className="min-w-0 flex h-[620px] flex-col overflow-hidden rounded-[18px] border border-white/30 bg-[#0b6f95]/92 p-0 shadow-xl lg:col-span-2 xl:sticky xl:top-24 xl:col-span-1 xl:h-[calc(100vh-120px)]">
+                <div className="shrink-0 flex items-center justify-between border-b border-white/20 px-4 py-4">
                   <h3 className="text-xl font-bold text-white sm:text-2xl">Team Chat</h3>
 
                   <div className="flex gap-2">
@@ -390,20 +390,17 @@ export default function TeamWorkspace() {
 
                 <div
                   ref={chatContainerRef}
-                  className="h-[380px] overflow-y-auto px-4 py-4 sm:h-[460px] xl:h-[520px]"
+                  className="min-h-0 flex-1 overflow-y-auto px-4 py-4"
                 >
                   <div className="space-y-5">
                     {messages.length > 0 ? (
                       messages.map((message) => {
-                        const isMine =
-                          Number(message.user_id) === Number(currentUserId);
+                        const isMine = Number(message.user_id) === Number(currentUserId);
 
                         return (
                           <div
                             key={message.id}
-                            className={`flex ${
-                              isMine ? "justify-end" : "justify-start"
-                            }`}
+                            className={`flex ${isMine ? "justify-end" : "justify-start"}`}
                           >
                             <div
                               className={`flex max-w-[92%] items-end gap-2 sm:max-w-[82%] sm:gap-3 ${
@@ -431,16 +428,12 @@ export default function TeamWorkspace() {
                                   }`}
                                 >
                                   <p className="text-sm font-semibold text-white">
-                                    {isMine
-                                      ? "You"
-                                      : message.username || "Unknown user"}
+                                    {isMine ? "You" : message.username || "Unknown user"}
                                   </p>
 
                                   <span className="text-xs text-white/50">
                                     {message.created_at
-                                      ? new Date(
-                                          message.created_at
-                                        ).toLocaleTimeString([], {
+                                      ? new Date(message.created_at).toLocaleTimeString([], {
                                           hour: "2-digit",
                                           minute: "2-digit",
                                         })
@@ -468,7 +461,7 @@ export default function TeamWorkspace() {
                   </div>
                 </div>
 
-                <div className="border-t border-white/20 p-4">
+                <div className="shrink-0 border-t border-white/20 p-4">
                   <div className="flex gap-2">
                     <input
                       type="text"
