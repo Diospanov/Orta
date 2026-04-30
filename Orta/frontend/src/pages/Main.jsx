@@ -1,14 +1,17 @@
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { useAuth } from "../context/useAuth";
 
 export default function Main() {
+  const { isAuthenticated } = useAuth();
+
   const heroLines = [
     {
       className: "text-[40px] whitespace-nowrap md:text-[58px] xl:text-[68px]",
       parts: [
-        { text: "Great", accent: true },
-        { text: " projects" },
+        { text: "Great\u00A0", accent: true },
+        { text: "projects" },
       ],
     },
     {
@@ -45,7 +48,7 @@ export default function Main() {
               {heroLines.map(({ className, parts }) => (
                 <span
                   key={parts.map(({ text }) => text).join("")}
-                  className={`block origin-top scale-y-[0.84] ${className}`}
+                  className={`block ${className}`}
                 >
                   {parts.map(({ text, accent }) => (
                     <span
@@ -59,20 +62,35 @@ export default function Main() {
               ))}
             </h1>
 
-            <div className="mt-8 flex flex-wrap gap-5 md:mt-10">
-              <Link
-                to="/login"
-                className="w-full rounded-[24px] bg-[#12cdb4] px-8 py-4 text-center text-[20px] font-normal uppercase tracking-[0.05em] text-white transition hover:scale-[1.02] hover:bg-[#10b8a2] sm:w-auto sm:min-w-[220px] md:min-w-[240px] md:text-[22px]"
-              >
-                Log In
-              </Link>
+            <div
+              className={`flex flex-wrap gap-5 ${
+                isAuthenticated ? "mt-0 justify-center" : "mt-8 md:mt-10"
+              }`}
+            >
+              {isAuthenticated ? (
+                <Link
+                  to="/browse-teams"
+                  className="w-full rounded-[24px] bg-[#12cdb4] px-8 py-4 text-center text-[20px] font-normal uppercase tracking-[0.05em] text-white transition hover:scale-[1.02] hover:bg-[#10b8a2] sm:w-auto sm:min-w-[240px] md:min-w-[300px] md:text-[22px]"
+                >
+                  Start
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="w-full rounded-[24px] bg-[#12cdb4] px-8 py-4 text-center text-[20px] font-normal uppercase tracking-[0.05em] text-white transition hover:scale-[1.02] hover:bg-[#10b8a2] sm:w-auto sm:min-w-[220px] md:min-w-[240px] md:text-[22px]"
+                  >
+                    Log In
+                  </Link>
 
-              <Link
-                to="/register"
-                className="w-full rounded-[24px] bg-[#12cdb4] px-8 py-4 text-center text-[20px] font-normal uppercase tracking-[0.05em] text-white transition hover:scale-[1.02] hover:bg-[#10b8a2] sm:w-auto sm:min-w-[240px] md:min-w-[300px] md:text-[22px]"
-              >
-                Register Now
-              </Link>
+                  <Link
+                    to="/register"
+                    className="w-full rounded-[24px] bg-[#12cdb4] px-8 py-4 text-center text-[20px] font-normal uppercase tracking-[0.05em] text-white transition hover:scale-[1.02] hover:bg-[#10b8a2] sm:w-auto sm:min-w-[240px] md:min-w-[300px] md:text-[22px]"
+                  >
+                    Register Now
+                  </Link>
+                </>
+              )}
             </div>
           </section>
 

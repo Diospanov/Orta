@@ -61,20 +61,20 @@ export default function Navbar() {
           <>
             <Link
               to="/profile"
-              className="flex min-w-0 items-center gap-2 text-sm font-medium text-white sm:gap-3"
+              className="flex min-w-0 items-center gap-2 text-sm font-medium text-white sm:gap-3 sm:text-base"
             >
-              <span className="hidden max-w-32 truncate sm:inline lg:max-w-48">
+              <span className="hidden max-w-36 truncate sm:inline lg:max-w-56">
                 {user.full_name || user.username}
               </span>
 
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1e4fff] font-semibold transition hover:scale-110">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1e4fff] text-sm font-semibold transition hover:scale-110 sm:h-12 sm:w-12 sm:text-base">
                 {getInitials()}
               </div>
             </Link>
 
             <button
               onClick={handleLogout}
-              className="rounded-xl bg-[#10c7b0] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#0eb39e] sm:px-4"
+              className="rounded-xl bg-[#10c7b0] px-3 py-2.5 text-sm font-medium text-white transition hover:bg-[#0eb39e] sm:px-4 sm:text-base"
             >
               Logout
             </button>

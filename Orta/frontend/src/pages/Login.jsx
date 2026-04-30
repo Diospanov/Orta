@@ -29,15 +29,16 @@ export default function Login() {
       <div className="mx-auto flex min-h-screen max-w-[1500px] items-center justify-center gap-8 px-4 py-8 sm:px-6 md:px-10 lg:justify-between">
         <div className="flex w-full items-center justify-center lg:w-1/2">
           <div className="w-full max-w-[620px] rounded-[30px] bg-[#0f6784] px-6 py-8 text-white shadow-[0_10px_40px_rgba(0,0,0,0.18)] sm:px-10 sm:py-10 md:px-14 md:py-12">
-            <h1 className="text-center text-3xl font-medium uppercase leading-[1.08] tracking-[0.08em] sm:text-5xl md:text-6xl">
-              Welcome back
-            <br />
-                to{" "}
-              <img
-                src="/ORTA.svg"
-                alt="Orta"
-                className="inline h-[1em] align-baseline"
-              />
+            <h1 className="text-center text-3xl font-medium uppercase leading-none tracking-[0.08em] sm:text-5xl md:text-6xl">
+              <span className="block whitespace-nowrap">Welcome back</span>
+              <span className="mt-3 flex items-center justify-center gap-3 whitespace-nowrap">
+                <span>to</span>
+                <img
+                  src="/ORTA.svg"
+                  alt="Orta"
+                  className="unsquash-y h-[0.55em] w-auto shrink-0"
+                />
+              </span>
             </h1>
 
             <p className="mt-5 text-center text-sm text-white/90 md:text-base">
@@ -96,7 +97,7 @@ export default function Login() {
 
         <div className="hidden items-end justify-center overflow-hidden lg:flex lg:w-1/2">
           <img
-            src="/leaf-character.png"
+            src="/leaf-character.svg"
             alt="leaf character"
             className="max-h-[76vh] w-auto object-contain translate-x-15 translate-y-2"
           />
