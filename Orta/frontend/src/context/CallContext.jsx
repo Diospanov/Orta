@@ -58,6 +58,12 @@ export function CallProvider({ children }) {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
 
+  const remoteVideoContainerRef = useRef(null);
+  const [isRemoteFullscreen, setIsRemoteFullscreen] = useState(false);
+
+  const screenStreamRef = useRef(null);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+
   function setCallStatusSafe(status) {
     callStatusRef.current = status;
     setCallStatus(status);
@@ -406,6 +412,90 @@ export function CallProvider({ children }) {
     }
   }
 
+  async function startScreenShare() {
+    try {
+        const pc = peerConnectionRef.current;
+
+        if (!pc) {
+        alert("Call is not connected yet.");
+        return;
+        }
+
+        if (callModeRef.current !== "video") {
+        alert("Screen sharing is available during video calls.");
+        return;
+        }
+
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false,
+        });
+
+        const screenTrack = screenStream.getVideoTracks()[0];
+
+        if (!screenTrack) {
+        return;
+        }
+
+        screenStreamRef.current = screenStream;
+
+        const videoSender = pc
+        .getSenders()
+        .find((sender) => sender.track && sender.track.kind === "video");
+
+        if (!videoSender) {
+        alert("No video track found for this call.");
+        return;
+        }
+
+        await videoSender.replaceTrack(screenTrack);
+
+        setIsScreenSharing(true);
+
+        // Show your own screen in local preview
+        setLocalStream(screenStream);
+
+        screenTrack.onended = () => {
+        stopScreenShare();
+        };
+    } catch (error) {
+        console.error("Failed to start screen sharing:", error);
+    }
+    }
+
+    async function stopScreenShare() {
+    const pc = peerConnectionRef.current;
+    const cameraStream = localStreamRef.current;
+
+    if (!pc || !cameraStream) {
+        return;
+    }
+
+    const cameraTrack = cameraStream.getVideoTracks()[0];
+
+    if (!cameraTrack) {
+        return;
+    }
+
+    const videoSender = pc
+        .getSenders()
+        .find((sender) => sender.track && sender.track.kind === "video");
+
+    if (videoSender) {
+        await videoSender.replaceTrack(cameraTrack);
+    }
+
+    if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((track) => track.stop());
+        screenStreamRef.current = null;
+    }
+
+    setIsScreenSharing(false);
+
+    // Return local preview back to camera
+    setLocalStream(cameraStream);
+  }
+
   function rejectCall() {
     if (!incomingCall) return;
 
@@ -419,6 +509,8 @@ export function CallProvider({ children }) {
   }
 
   function cleanupCall(notifyOtherUser = true) {
+
+    closeRemoteFullscreen();
     const targetUserId = activeCallUserIdRef.current;
 
     if (notifyOtherUser && targetUserId) {
@@ -436,6 +528,12 @@ export function CallProvider({ children }) {
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => track.stop());
     }
+
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((track) => track.stop());
+    }
+    screenStreamRef.current = null;
+    setIsScreenSharing(false);
 
     localStreamRef.current = null;
     remoteStreamRef.current = null;
@@ -484,6 +582,33 @@ export function CallProvider({ children }) {
     setIsCameraOff(nextCameraOffState);
   }
 
+  async function openRemoteFullscreen() {
+    try {
+        const element = remoteVideoContainerRef.current;
+
+        if (!element) return;
+
+        if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        return;
+        }
+
+        await element.requestFullscreen();
+    } catch (error) {
+        console.error("Failed to toggle fullscreen:", error);
+    }
+    }
+
+    async function closeRemoteFullscreen() {
+    try {
+        if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        }
+    } catch (error) {
+        console.error("Failed to exit fullscreen:", error);
+    }
+  }
+
   useEffect(() => {
     if (localVideoRef.current && localStream) {
       localVideoRef.current.srcObject = localStream;
@@ -495,6 +620,20 @@ export function CallProvider({ children }) {
       remoteVideoRef.current.srcObject = remoteStream;
     }
   }, [remoteStream, isCallMinimized, callStatus]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+        setIsRemoteFullscreen(
+        document.fullscreenElement === remoteVideoContainerRef.current
+        );
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    return () => {
+        document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -592,6 +731,18 @@ export function CallProvider({ children }) {
                   </button>
                 )}
 
+                {callMode === "video" && (
+                  <button
+                    type="button"
+                    onClick={isScreenSharing ? stopScreenShare : startScreenShare}
+                    className={`rounded-xl px-4 py-3 font-semibold text-white ${
+                      isScreenSharing ? "bg-yellow-500" : "bg-[#12c39b]"
+                    }`}
+                  >
+                    {isScreenSharing ? "Stop Share" : "Share Screen"}
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => cleanupCall(true)}
@@ -604,12 +755,37 @@ export function CallProvider({ children }) {
 
             {callMode === "video" ? (
               <div className="mt-6 grid gap-4 md:grid-cols-[1fr_220px]">
-                <video
-                  ref={remoteVideoRef}
-                  autoPlay
-                  playsInline
-                  className="h-[360px] w-full rounded-2xl bg-black object-cover"
-                />
+                <div
+                    ref={remoteVideoContainerRef}
+                    className={`relative overflow-hidden rounded-2xl bg-black ${
+                        isRemoteFullscreen ? "h-screen w-screen rounded-none" : "h-[360px] w-full"
+                    }`}
+                    >
+                    <video
+                        ref={remoteVideoRef}
+                        autoPlay
+                        playsInline
+                        className="h-full w-full object-contain"
+                    />
+
+                    <button
+                        type="button"
+                        onClick={openRemoteFullscreen}
+                        className="absolute right-4 top-4 rounded-xl bg-black/60 px-4 py-2 text-sm font-semibold text-white backdrop-blur hover:bg-black/75"
+                    >
+                        {isRemoteFullscreen ? "Exit full screen" : "Full screen"}
+                    </button>
+
+                    {isRemoteFullscreen && (
+                        <button
+                        type="button"
+                        onClick={closeRemoteFullscreen}
+                        className="absolute bottom-4 right-4 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white"
+                        >
+                        Close
+                        </button>
+                    )}
+                </div>
 
                 <div className="relative h-[180px] w-full overflow-hidden rounded-2xl bg-black">
                   <video
