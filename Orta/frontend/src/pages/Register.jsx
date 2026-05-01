@@ -51,7 +51,7 @@ export default function Register() {
                 <img
                   src="/ORTA.svg"
                   alt="Orta"
-                  className="unsquash-y h-[0.55em] w-auto shrink-0"
+                  className="h-[0.75em] w-auto shrink-0"
                 />
               </span>
               <span className="-mt-1 block">account</span>

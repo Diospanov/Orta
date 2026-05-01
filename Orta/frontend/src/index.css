@@ -13,90 +13,14 @@
 }
 
 @layer base {
-  :root {
-    --text-squash-y: 0.7;
-  }
-
   html,
   body {
     font-family: "SF Pro";
     src: url("/fonts/SF-Pro.ttf") format("truetype");
-    font-weight: 250;
+    font-weight: 400;
     letter-spacing: 0.015em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: geometricPrecision;
-  }
-
-  :where(
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6,
-      p,
-      label,
-      li,
-      figcaption,
-      summary,
-      blockquote,
-      th,
-      td,
-      span
-    ):not(:has(img, svg, picture, video, canvas)):not(.text-no-squash):not(
-      :where(
-          h1,
-          h2,
-          h3,
-          h4,
-          h5,
-          h6,
-          p,
-          label,
-          li,
-          figcaption,
-          summary,
-          blockquote,
-          th,
-          td,
-          span
-        ):not(:has(img, svg, picture, video, canvas)):not(.text-no-squash)
-        :where(
-          h1,
-          h2,
-          h3,
-          h4,
-          h5,
-          h6,
-          p,
-          label,
-          li,
-          figcaption,
-          summary,
-          blockquote,
-          th,
-          td,
-          span
-        )
-    ) {
-    transform: scaleY(var(--text-squash-y));
-    transform-origin: center;
-  }
-
-  :where(span):not(:has(img, svg, picture, video, canvas)) {
-    display: inline-block;
-  }
-}
-
-@layer utilities {
-  .text-squash-y {
-    display: inline-block;
-    transform: scaleY(var(--text-squash-y));
-    transform-origin: center;
-  }
-
-  .text-no-squash {
-    transform: none;
   }
 }

@@ -83,6 +83,27 @@ export async function getProfile() {
   return data;
 }
 
+export async function updateProfile(profileData) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/users/me`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(profileData),
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(getFastAPIErrorMessage(data) || "Failed to update profile");
+  }
+
+  return data;
+}
+
 export async function registerUser(userData) {
   const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",

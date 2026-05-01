@@ -8,18 +8,18 @@ export default function Main() {
 
   const heroLines = [
     {
-      className: "text-[40px] whitespace-nowrap md:text-[58px] xl:text-[68px]",
+      className: "whitespace-nowrap text-[36px] md:text-[52px] xl:text-[62px]",
       parts: [
         { text: "Great\u00A0", accent: true },
         { text: "projects" },
       ],
     },
     {
-      className: "text-[40px] md:text-[58px] xl:text-[68px]",
+      className: "text-[36px] md:text-[52px] xl:text-[62px]",
       parts: [{ text: "start with" }],
     },
     {
-      className: "text-[34px] whitespace-nowrap md:text-[58px] xl:text-[68px]",
+      className: "whitespace-nowrap text-[32px] md:text-[52px] xl:text-[62px]",
       parts: [
         { text: "the right\u00A0" },
         { text: "people", accent: true },
@@ -44,53 +44,61 @@ export default function Main() {
       <main className="relative mx-auto flex min-h-[calc(100vh-130px)] max-w-7xl items-center px-4 pb-10 pt-4 sm:px-6 md:px-12 lg:min-h-[calc(100vh-110px)]">
         <div className="grid w-full items-center gap-10 lg:grid-cols-2">
           <section className="z-10 max-w-[760px]">
-            <h1 className="font-normal uppercase leading-[0.84] tracking-[0.035em] text-white">
-              {heroLines.map(({ className, parts }) => (
-                <span
-                  key={parts.map(({ text }) => text).join("")}
-                  className={`block ${className}`}
-                >
-                  {parts.map(({ text, accent }) => (
-                    <span
-                      key={text}
-                      className={accent ? "text-[#17d3b1]" : undefined}
-                    >
-                      {text}
-                    </span>
-                  ))}
-                </span>
-              ))}
-            </h1>
-
             <div
-              className={`flex flex-wrap gap-5 ${
-                isAuthenticated ? "mt-0 justify-center" : "mt-8 md:mt-10"
-              }`}
+              className={
+                isAuthenticated
+                  ? "inline-flex max-w-full flex-col items-stretch"
+                  : undefined
+              }
             >
-              {isAuthenticated ? (
-                <Link
-                  to="/browse-teams"
-                  className="w-full rounded-[24px] bg-[#12cdb4] px-8 py-4 text-center text-[20px] font-normal uppercase tracking-[0.05em] text-white transition hover:scale-[1.02] hover:bg-[#10b8a2] sm:w-auto sm:min-w-[240px] md:min-w-[300px] md:text-[22px]"
-                >
-                  Start
-                </Link>
-              ) : (
-                <>
-                  <Link
-                    to="/login"
-                    className="w-full rounded-[24px] bg-[#12cdb4] px-8 py-4 text-center text-[20px] font-normal uppercase tracking-[0.05em] text-white transition hover:scale-[1.02] hover:bg-[#10b8a2] sm:w-auto sm:min-w-[220px] md:min-w-[240px] md:text-[22px]"
+              <h1 className="flex flex-col gap-2 font-normal uppercase leading-none tracking-[0.035em] text-white md:gap-3">
+                {heroLines.map(({ className, parts }) => (
+                  <span
+                    key={parts.map(({ text }) => text).join("")}
+                    className={`block ${className}`}
                   >
-                    Log In
-                  </Link>
+                    {parts.map(({ text, accent }) => (
+                      <span
+                        key={text}
+                        className={accent ? "text-[#17d3b1]" : undefined}
+                      >
+                        {text}
+                      </span>
+                    ))}
+                  </span>
+                ))}
+              </h1>
 
+              <div
+                className={`flex flex-wrap gap-5 ${
+                  isAuthenticated ? "mt-4 md:mt-5" : "mt-8 md:mt-10"
+                }`}
+              >
+                {isAuthenticated ? (
                   <Link
-                    to="/register"
-                    className="w-full rounded-[24px] bg-[#12cdb4] px-8 py-4 text-center text-[20px] font-normal uppercase tracking-[0.05em] text-white transition hover:scale-[1.02] hover:bg-[#10b8a2] sm:w-auto sm:min-w-[240px] md:min-w-[300px] md:text-[22px]"
+                    to="/browse-teams"
+                    className="w-full rounded-[24px] bg-[#12cdb4] px-8 py-4 text-center text-[20px] font-normal uppercase tracking-[0.05em] text-white transition hover:bg-[#10b8a2] md:text-[22px]"
                   >
-                    Register Now
+                    Start
                   </Link>
-                </>
-              )}
+                ) : (
+                  <>
+                    <Link
+                      to="/login"
+                      className="w-full rounded-[24px] bg-[#12cdb4] px-8 py-4 text-center text-[20px] font-normal uppercase tracking-[0.05em] text-white transition hover:scale-[1.02] hover:bg-[#10b8a2] sm:w-auto sm:min-w-[220px] md:min-w-[240px] md:text-[22px]"
+                    >
+                      Log In
+                    </Link>
+
+                    <Link
+                      to="/register"
+                      className="w-full rounded-[24px] bg-[#12cdb4] px-8 py-4 text-center text-[20px] font-normal uppercase tracking-[0.05em] text-white transition hover:scale-[1.02] hover:bg-[#10b8a2] sm:w-auto sm:min-w-[240px] md:min-w-[300px] md:text-[22px]"
+                    >
+                      Register Now
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           </section>
 

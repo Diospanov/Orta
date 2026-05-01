@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useAuth } from "../context/useAuth";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { updateProfile } from "../api";
 
 const achievements = [
   "🏅 Team Leader",
@@ -121,7 +123,7 @@ const activities = [
   },
 ];
 
-function Panel({ title, rightText, children }) {
+function Panel({ title, rightText, onRightClick, rightDisabled = false, children }) {
   return (
     <div className="rounded-[26px] border border-[#d8d2a0] bg-[#0f6f95]/95 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.18)] backdrop-blur-sm sm:p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[#d8d2a0] pb-3">
@@ -129,7 +131,12 @@ function Panel({ title, rightText, children }) {
           {title}
         </h2>
         {rightText && (
-          <button className="rounded-xl border border-[#d8d2a0] px-4 py-2 text-sm font-medium text-[#d8d2a0] transition hover:bg-white/10">
+          <button
+            type="button"
+            onClick={onRightClick}
+            disabled={rightDisabled}
+            className="rounded-xl border border-[#d8d2a0] px-4 py-2 text-sm font-medium text-[#d8d2a0] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+          >
             {rightText}
           </button>
         )}
@@ -184,13 +191,93 @@ function TeamMiniCard({ team }) {
   );
 }
 
+function InfoItem({ label, children }) {
+  return (
+    <div>
+      <div className="text-sm text-white/60">{label}</div>
+      <div className="mt-2 break-words text-lg font-medium sm:text-[24px]">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ProfileInput({ label, ...props }) {
+  return (
+    <label className="block">
+      <span className="text-sm text-white/70">{label}</span>
+      <input
+        {...props}
+        className="mt-2 h-[54px] w-full rounded-[14px] border-2 border-[#d8d2a0] bg-white/10 px-4 text-lg font-medium text-white outline-none transition placeholder:text-white/40 focus:border-[#12cdb4] sm:text-[20px]"
+      />
+    </label>
+  );
+}
+
 export default function Profile() {
-  const { user: profile, isChecking, logout } = useAuth();
+  const { user: profile, setUser, isChecking, logout } = useAuth();
   const navigate = useNavigate();
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    full_name: "",
+    username: "",
+  });
+  const [profileError, setProfileError] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const openProfileEditor = () => {
+    setProfileForm({
+      full_name: profile?.full_name || "",
+      username: profile?.username || "",
+    });
+    setProfileError("");
+    setIsEditingProfile(true);
+  };
+
+  const closeProfileEditor = () => {
+    setProfileError("");
+    setIsEditingProfile(false);
+  };
+
+  const handleProfileFormChange = (event) => {
+    const { name, value } = event.target;
+    setProfileForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  };
+
+  const handleProfileSave = async (event) => {
+    event.preventDefault();
+
+    const username = profileForm.username.trim();
+    const fullName = profileForm.full_name.trim();
+
+    if (!username) {
+      setProfileError("Username is required.");
+      return;
+    }
+
+    setIsSavingProfile(true);
+    setProfileError("");
+
+    try {
+      const updatedProfile = await updateProfile({
+        username,
+        full_name: fullName || null,
+      });
+      setUser(updatedProfile);
+      setIsEditingProfile(false);
+    } catch (error) {
+      setProfileError(error.message);
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const getInitials = () => {
@@ -353,61 +440,113 @@ export default function Profile() {
             </aside>
 
             <section className="space-y-6 xl:col-span-3">
-              <Panel title="Personal Information" rightText="Edit">
-                <div className="grid gap-8 md:grid-cols-2">
-                  <div className="space-y-8">
-                    <div>
-                      <div className="text-sm text-white/60">Full Name</div>
-                      <div className="mt-2 break-words text-lg font-medium sm:text-[24px]">
-                        {profile.full_name || "-"}
+              <Panel
+                title="Personal Information"
+                rightText={isEditingProfile ? "Cancel" : "Edit"}
+                onRightClick={
+                  isEditingProfile ? closeProfileEditor : openProfileEditor
+                }
+                rightDisabled={isSavingProfile}
+              >
+                {isEditingProfile ? (
+                  <form onSubmit={handleProfileSave}>
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <ProfileInput
+                        label="Full Name"
+                        name="full_name"
+                        value={profileForm.full_name}
+                        onChange={handleProfileFormChange}
+                        placeholder="Your full name"
+                        maxLength={100}
+                      />
+
+                      <ProfileInput
+                        label="Username"
+                        name="username"
+                        value={profileForm.username}
+                        onChange={handleProfileFormChange}
+                        placeholder="Username"
+                        minLength={3}
+                        maxLength={50}
+                        required
+                      />
+                    </div>
+
+                    <div className="mt-8 grid gap-8 md:grid-cols-2">
+                      <div className="space-y-8">
+                        <InfoItem label="Role">{profile.role}</InfoItem>
+                        <InfoItem label="Email">{profile.email}</InfoItem>
+                      </div>
+
+                      <div className="space-y-8">
+                        <InfoItem label="Joined Orta">
+                          {formatDate(profile.created_at)}
+                        </InfoItem>
+                        <InfoItem label="Account Status">
+                          {profile.is_active ? "Active" : "Inactive"}
+                        </InfoItem>
                       </div>
                     </div>
 
-                    <div>
-                      <div className="text-sm text-white/60">Username</div>
-                      <div className="mt-2 break-words text-lg font-medium sm:text-[24px]">
-                        {profile.username}
+                    {profileError && (
+                      <p className="mt-5 rounded-xl border border-red-200/50 bg-red-500/20 px-4 py-3 text-sm text-red-100">
+                        {profileError}
+                      </p>
+                    )}
+
+                    <div className="mt-6 flex flex-wrap gap-3">
+                      <button
+                        type="submit"
+                        disabled={isSavingProfile}
+                        className="rounded-xl bg-[#12cdb4] px-6 py-3 font-semibold text-white transition hover:bg-[#10b8a2] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isSavingProfile ? "Saving..." : "Save Changes"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={closeProfileEditor}
+                        disabled={isSavingProfile}
+                        className="rounded-xl border border-[#d8d2a0] px-6 py-3 font-semibold text-[#d8d2a0] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div className="grid gap-8 md:grid-cols-2">
+                      <div className="space-y-8">
+                        <InfoItem label="Full Name">
+                          {profile.full_name || "-"}
+                        </InfoItem>
+
+                        <InfoItem label="Username">{profile.username}</InfoItem>
+
+                        <InfoItem label="Role">{profile.role}</InfoItem>
+                      </div>
+
+                      <div className="space-y-8">
+                        <InfoItem label="Email">{profile.email}</InfoItem>
+
+                        <InfoItem label="Joined Orta">
+                          {formatDate(profile.created_at)}
+                        </InfoItem>
+
+                        <InfoItem label="Account Status">
+                          {profile.is_active ? "Active" : "Inactive"}
+                        </InfoItem>
                       </div>
                     </div>
 
-                    <div>
-                      <div className="text-sm text-white/60">Role</div>
-                      <div className="mt-2 break-words text-lg font-medium sm:text-[24px]">
-                        {profile.role}
-                      </div>
+                    <div className="mt-10">
+                      <div className="text-sm text-white/60">Bio</div>
+                      <p className="mt-3 max-w-5xl text-lg leading-8 text-white/90">
+                        Welcome to your Orta profile page.
+                      </p>
                     </div>
-                  </div>
-
-                  <div className="space-y-8">
-                    <div>
-                      <div className="text-sm text-white/60">Email</div>
-                      <div className="mt-2 break-words text-lg font-medium sm:text-[24px]">
-                        {profile.email}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-sm text-white/60">Joined Orta</div>
-                      <div className="mt-2 break-words text-lg font-medium sm:text-[24px]">
-                        {formatDate(profile.created_at)}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-sm text-white/60">Account Status</div>
-                      <div className="mt-2 break-words text-lg font-medium sm:text-[24px]">
-                        {profile.is_active ? "Active" : "Inactive"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-10">
-                  <div className="text-sm text-white/60">Bio</div>
-                  <p className="mt-3 max-w-5xl text-lg leading-8 text-white/90">
-                    Welcome to your Orta profile page.
-                  </p>
-                </div>
+                  </>
+                )}
               </Panel>
 
               <Panel title="Skills & Interests">
