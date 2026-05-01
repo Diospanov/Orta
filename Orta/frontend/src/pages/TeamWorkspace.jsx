@@ -15,7 +15,7 @@ import {
   RequestsTab,
   SettingsTab,
 } from "../components/workspace/WorkspaceFeatureTabs";
-
+import { useCall } from "../context/CallContext";
 
 function getInitial(name) {
   return name?.trim()?.charAt(0)?.toUpperCase() || "T";
@@ -55,6 +55,7 @@ function NavItem({ active, children, onClick }) {
 
 export default function TeamWorkspace() {
   const { teamId } = useParams();
+  const { connectCallSocket, startCall } = useCall();
 
   const [team, setTeam] = useState(null);
   const [members, setMembers] = useState([]);
@@ -67,30 +68,6 @@ export default function TeamWorkspace() {
 
   const socketRef = useRef(null);
   const chatContainerRef = useRef(null);
-
-  const [incomingCall, setIncomingCall] = useState(null);
-  const [callStatus, setCallStatus] = useState("idle");
-  // idle | calling | ringing | connecting | connected
-
-  const [callMode, setCallMode] = useState(null);
-  // audio | video
-
-  const [activeCallUserId, setActiveCallUserId] = useState(null);
-  const [activeCallUsername, setActiveCallUsername] = useState("");
-
-  const [localStream, setLocalStream] = useState(null);
-  const [remoteStream, setRemoteStream] = useState(null);
-
-  const peerConnectionRef = useRef(null);
-  const localStreamRef = useRef(null);
-  const remoteStreamRef = useRef(null);
-  const callStatusRef = useRef("idle");
-  const callModeRef = useRef(null);
-  const activeCallUserIdRef = useRef(null);
-  const pendingIceCandidatesRef = useRef([]);
-
-  const localVideoRef = useRef(null);
-  const remoteVideoRef = useRef(null);
 
   const loadWorkspaceData = async () => {
     try {
@@ -123,6 +100,12 @@ export default function TeamWorkspace() {
   }, [teamId]);
 
   useEffect(() => {
+    connectCallSocket(teamId).catch((error) => {
+      console.error("Failed to connect call socket:", error);
+    });
+  }, [teamId, connectCallSocket]);
+
+  useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
@@ -143,14 +126,14 @@ export default function TeamWorkspace() {
     const connectTimer = setTimeout(() => {
       if (cancelled) return;
 
-      console.log("Connecting to WS:", wsUrl);
+      console.log("Connecting to chat WS:", wsUrl);
 
       socket = new WebSocket(wsUrl);
       socketRef.current = socket;
 
       socket.onopen = () => {
         if (!cancelled) {
-          console.log("WebSocket connected");
+          console.log("Chat WebSocket connected");
         }
       };
 
@@ -164,48 +147,6 @@ export default function TeamWorkspace() {
             setMessages((prev) => [...prev, data.message]);
           }
 
-          if (data.type === "call_invite") {
-            if (callStatusRef.current !== "idle") {
-              sendWsEvent({
-                type: "call_reject",
-                target_user_id: data.from_user_id,
-              });
-              return;
-            }
-
-            setIncomingCall(data);
-            callModeRef.current = data.call_mode;
-            setCallMode(data.call_mode);
-            setCallStatusSafe("ringing");
-          }
-
-          if (data.type === "call_accept") {
-            setCallStatusSafe("connecting");
-            createAndSendOffer(Number(data.from_user_id));
-          }
-
-          if (data.type === "call_reject") {
-            alert(`${data.from_username} rejected the call.`);
-            cleanupCall(false);
-          }
-
-          if (data.type === "call_end") {
-            alert(`${data.from_username} ended the call.`);
-            cleanupCall(false);
-          }
-
-          if (data.type === "webrtc_offer") {
-            handleWebrtcOffer(data);
-          }
-
-          if (data.type === "webrtc_answer") {
-            handleWebrtcAnswer(data);
-          }
-
-          if (data.type === "ice_candidate") {
-            handleIceCandidate(data);
-          }
-
           if (data.type === "error") {
             console.error("WS server error:", data.detail);
           }
@@ -216,13 +157,13 @@ export default function TeamWorkspace() {
 
       socket.onerror = (error) => {
         if (!cancelled) {
-          console.error("WebSocket error:", error);
+          console.error("Chat WebSocket error:", error);
         }
       };
 
       socket.onclose = (event) => {
         if (!cancelled) {
-          console.log("WebSocket closed:", event.code, event.reason);
+          console.log("Chat WebSocket closed:", event.code, event.reason);
         }
       };
     }, 100);
@@ -278,263 +219,6 @@ export default function TeamWorkspace() {
     });
   }, [team, members, currentUserId]);
 
-
-  const setCallStatusSafe = (status) => {
-    callStatusRef.current = status;
-    setCallStatus(status);
-  };
-
-  const setActiveCallTarget = (userId, username = "") => {
-    const normalizedUserId = Number(userId);
-
-    activeCallUserIdRef.current = normalizedUserId;
-    setActiveCallUserId(normalizedUserId);
-    setActiveCallUsername(username);
-  };
-
-  const sendWsEvent = (payload) => {
-    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-      console.error("WebSocket is not connected.");
-      return false;
-    }
-
-    socketRef.current.send(JSON.stringify(payload));
-    return true;
-  };
-
-  const getLocalMedia = async (mode) => {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: mode === "video",
-    });
-
-    localStreamRef.current = stream;
-    setLocalStream(stream);
-
-    return stream;
-  };
-
-  const createPeerConnection = (targetUserId, stream) => {
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-    }
-
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-    });
-
-    peerConnectionRef.current = pc;
-
-    stream.getTracks().forEach((track) => {
-      pc.addTrack(track, stream);
-    });
-
-    pc.ontrack = (event) => {
-      const [streamFromRemote] = event.streams;
-
-      remoteStreamRef.current = streamFromRemote;
-      setRemoteStream(streamFromRemote);
-      setCallStatusSafe("connected");
-    };
-
-    pc.onicecandidate = (event) => {
-      if (!event.candidate) return;
-
-      sendWsEvent({
-        type: "ice_candidate",
-        target_user_id: targetUserId,
-        candidate: event.candidate,
-      });
-    };
-
-    pc.onconnectionstatechange = () => {
-      if (["failed", "disconnected", "closed"].includes(pc.connectionState)) {
-        console.log("WebRTC connection state:", pc.connectionState);
-      }
-    };
-
-    return pc;
-  };
-
-  const flushPendingIceCandidates = async () => {
-    const pc = peerConnectionRef.current;
-    if (!pc || !pc.remoteDescription) return;
-
-    const candidates = pendingIceCandidatesRef.current;
-    pendingIceCandidatesRef.current = [];
-
-    for (const candidate of candidates) {
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (error) {
-        console.error("Failed to add queued ICE candidate:", error);
-      }
-    }
-  };
-
-  const createAndSendOffer = async (targetUserId) => {
-    const stream =
-      localStreamRef.current || (await getLocalMedia(callModeRef.current || "audio"));
-
-    const pc = createPeerConnection(targetUserId, stream);
-
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-
-    sendWsEvent({
-      type: "webrtc_offer",
-      target_user_id: targetUserId,
-      call_mode: callModeRef.current || "audio",
-      offer,
-    });
-  };
-
-  const handleWebrtcOffer = async (data) => {
-    const fromUserId = Number(data.from_user_id);
-    const mode = data.call_mode || callModeRef.current || "audio";
-
-    callModeRef.current = mode;
-    setCallMode(mode);
-    setActiveCallTarget(fromUserId, data.from_username || "");
-
-    const stream = localStreamRef.current || (await getLocalMedia(mode));
-    const pc = createPeerConnection(fromUserId, stream);
-
-    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-    await flushPendingIceCandidates();
-
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-
-    sendWsEvent({
-      type: "webrtc_answer",
-      target_user_id: fromUserId,
-      answer,
-    });
-
-    setCallStatusSafe("connected");
-  };
-
-  const handleWebrtcAnswer = async (data) => {
-    const pc = peerConnectionRef.current;
-    if (!pc) return;
-
-    await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-    await flushPendingIceCandidates();
-
-    setCallStatusSafe("connected");
-  };
-
-  const handleIceCandidate = async (data) => {
-    const pc = peerConnectionRef.current;
-
-    if (!pc || !pc.remoteDescription) {
-      pendingIceCandidatesRef.current.push(data.candidate);
-      return;
-    }
-
-    try {
-      await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-    } catch (error) {
-      console.error("Failed to add ICE candidate:", error);
-    }
-  };
-
-  const startCall = async (mode, targetUserId, targetUsername = "") => {
-    try {
-      callModeRef.current = mode;
-      setCallMode(mode);
-      setActiveCallTarget(targetUserId, targetUsername);
-      setCallStatusSafe("calling");
-
-      await getLocalMedia(mode);
-
-      sendWsEvent({
-        type: "call_invite",
-        target_user_id: targetUserId,
-        call_mode: mode,
-      });
-    } catch (error) {
-      console.error("Failed to start call:", error);
-      cleanupCall(false);
-      alert("Could not access camera/microphone.");
-    }
-  };
-
-  const acceptCall = async () => {
-    if (!incomingCall) return;
-
-    try {
-      const mode = incomingCall.call_mode || "audio";
-      const fromUserId = Number(incomingCall.from_user_id);
-
-      callModeRef.current = mode;
-      setCallMode(mode);
-      setActiveCallTarget(fromUserId, incomingCall.from_username || "");
-      setCallStatusSafe("connecting");
-
-      await getLocalMedia(mode);
-
-      sendWsEvent({
-        type: "call_accept",
-        target_user_id: fromUserId,
-        call_mode: mode,
-      });
-
-      setIncomingCall(null);
-    } catch (error) {
-      console.error("Failed to accept call:", error);
-      alert("Could not access camera/microphone.");
-      rejectCall();
-    }
-  };
-
-  const rejectCall = () => {
-    if (!incomingCall) return;
-
-    sendWsEvent({
-      type: "call_reject",
-      target_user_id: incomingCall.from_user_id,
-    });
-
-    setIncomingCall(null);
-    setCallStatusSafe("idle");
-  };
-
-  const cleanupCall = (notifyOtherUser = true) => {
-    const targetUserId = activeCallUserIdRef.current;
-
-    if (notifyOtherUser && targetUserId) {
-      sendWsEvent({
-        type: "call_end",
-        target_user_id: targetUserId,
-      });
-    }
-
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
-
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop());
-    }
-
-    localStreamRef.current = null;
-    remoteStreamRef.current = null;
-    activeCallUserIdRef.current = null;
-    callModeRef.current = null;
-    pendingIceCandidatesRef.current = [];
-
-    setLocalStream(null);
-    setRemoteStream(null);
-    setIncomingCall(null);
-    setActiveCallUserId(null);
-    setActiveCallUsername("");
-    setCallMode(null);
-    setCallStatusSafe("idle");
-  };
-
   const handleSendMessage = () => {
     const cleaned = messageInput.trim();
 
@@ -561,24 +245,6 @@ export default function TeamWorkspace() {
       handleSendMessage();
     }
   };
-
-  useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
-    }
-  }, [localStream]);
-
-  useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
-    }
-  }, [remoteStream]);
-
-  useEffect(() => {
-    return () => {
-      cleanupCall(false);
-    };
-  }, []);
 
   return (
     <>
@@ -675,11 +341,17 @@ export default function TeamWorkspace() {
                   <div className="space-y-3">
                     {members.length > 0 ? (
                       members.map((member) => {
-                        const isOwner = String(member.role).toLowerCase() === "owner";
+                        const isOwner =
+                          String(member.role).toLowerCase() === "owner";
 
                         const memberUserId = Number(
                           member.user_id ?? member.user?.id ?? member.id
                         );
+
+                        const memberUsername =
+                          member.username ||
+                          member.user?.username ||
+                          "Unknown user";
 
                         const isMe = memberUserId === Number(currentUserId);
 
@@ -689,12 +361,12 @@ export default function TeamWorkspace() {
                             className="flex items-center gap-3 rounded-xl bg-[#0d8a99] px-3 py-3"
                           >
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#11c8a1] text-sm font-bold text-white">
-                              {getInitial(member.username || member.user?.username)}
+                              {getInitial(memberUsername)}
                             </div>
 
                             <div className="min-w-0">
                               <p className="truncate text-sm font-semibold text-white">
-                                {member.username || member.user?.username || "Unknown user"}
+                                {memberUsername}
                               </p>
 
                               <p className="text-xs text-[#63e0b5]">
@@ -709,8 +381,9 @@ export default function TeamWorkspace() {
                                   onClick={() =>
                                     startCall(
                                       "video",
+                                      teamId,
                                       memberUserId,
-                                      member.username || member.user?.username || "Unknown user"
+                                      memberUsername
                                     )
                                   }
                                   className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white hover:bg-white/10"
@@ -724,8 +397,9 @@ export default function TeamWorkspace() {
                                   onClick={() =>
                                     startCall(
                                       "audio",
+                                      teamId,
                                       memberUserId,
-                                      member.username || member.user?.username || "Unknown user"
+                                      memberUsername
                                     )
                                   }
                                   className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white hover:bg-white/10"
@@ -777,19 +451,25 @@ export default function TeamWorkspace() {
 
               <aside className="min-w-0 flex h-[620px] flex-col overflow-hidden rounded-[18px] border border-white/30 bg-[#0b6f95]/92 p-0 shadow-xl lg:col-span-2 xl:sticky xl:top-24 xl:col-span-1 xl:h-[calc(100vh-120px)]">
                 <div className="shrink-0 flex items-center justify-between border-b border-white/20 px-4 py-4">
-                  <h3 className="text-xl font-bold text-white sm:text-2xl">Team Chat</h3>
+                  <h3 className="text-xl font-bold text-white sm:text-2xl">
+                    Team Chat
+                  </h3>
 
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      className="rounded-lg border border-white/25 px-3 py-2 text-sm text-white"
+                      disabled
+                      title="Use the member list to call a specific user"
+                      className="rounded-lg border border-white/25 px-3 py-2 text-sm text-white/50"
                     >
                       📹
                     </button>
 
                     <button
                       type="button"
-                      className="rounded-lg border border-white/25 px-3 py-2 text-sm text-white"
+                      disabled
+                      title="Use the member list to call a specific user"
+                      className="rounded-lg border border-white/25 px-3 py-2 text-sm text-white/50"
                     >
                       📞
                     </button>
@@ -803,12 +483,15 @@ export default function TeamWorkspace() {
                   <div className="space-y-5">
                     {messages.length > 0 ? (
                       messages.map((message) => {
-                        const isMine = Number(message.user_id) === Number(currentUserId);
+                        const isMine =
+                          Number(message.user_id) === Number(currentUserId);
 
                         return (
                           <div
                             key={message.id}
-                            className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                            className={`flex ${
+                              isMine ? "justify-end" : "justify-start"
+                            }`}
                           >
                             <div
                               className={`flex max-w-[88%] min-w-0 items-end gap-2 sm:max-w-[78%] sm:gap-3 ${
@@ -836,12 +519,16 @@ export default function TeamWorkspace() {
                                   }`}
                                 >
                                   <p className="text-sm font-semibold text-white">
-                                    {isMine ? "You" : message.username || "Unknown user"}
+                                    {isMine
+                                      ? "You"
+                                      : message.username || "Unknown user"}
                                   </p>
 
                                   <span className="text-xs text-white/50">
                                     {message.created_at
-                                      ? new Date(message.created_at).toLocaleTimeString([], {
+                                      ? new Date(
+                                          message.created_at
+                                        ).toLocaleTimeString([], {
                                           hour: "2-digit",
                                           minute: "2-digit",
                                         })
@@ -894,104 +581,6 @@ export default function TeamWorkspace() {
           )}
         </main>
       </div>
-
-      {incomingCall && callStatus === "ringing" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-md rounded-[24px] border border-white/20 bg-[#0b6f95] p-6 text-white shadow-2xl">
-            <h2 className="text-2xl font-bold">
-              Incoming {incomingCall.call_mode === "video" ? "video" : "audio"} call
-            </h2>
-
-            <p className="mt-3 text-white/80">
-              {incomingCall.from_username} is calling you.
-            </p>
-
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={acceptCall}
-                className="flex-1 rounded-xl bg-[#12c39b] px-4 py-3 font-semibold text-white"
-              >
-                Accept
-              </button>
-
-              <button
-                type="button"
-                onClick={rejectCall}
-                className="flex-1 rounded-xl bg-red-500 px-4 py-3 font-semibold text-white"
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {callStatus !== "idle" && callStatus !== "ringing" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-3xl rounded-[24px] border border-white/20 bg-[#0b6f95] p-6 text-white shadow-2xl">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-bold">
-                  {callMode === "video" ? "Video call" : "Audio call"}
-                </h2>
-
-                <p className="mt-1 text-sm text-white/70">
-                  {activeCallUsername || `User ${activeCallUserId}`} · {callStatus}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => cleanupCall(true)}
-                className="rounded-xl bg-red-500 px-4 py-3 font-semibold text-white"
-              >
-                End
-              </button>
-            </div>
-
-            {callMode === "video" ? (
-              <div className="mt-6 grid gap-4 md:grid-cols-[1fr_220px]">
-                <video
-                  ref={remoteVideoRef}
-                  autoPlay
-                  playsInline
-                  className="h-[360px] w-full rounded-2xl bg-black object-cover"
-                />
-
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="h-[180px] w-full rounded-2xl bg-black object-cover"
-                />
-              </div>
-            ) : (
-              <div className="mt-6 rounded-2xl bg-[#0d8a99] p-8 text-center">
-                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-[#11c8a1] text-4xl font-bold text-white">
-                  {getInitial(activeCallUsername)}
-                </div>
-
-                <p className="mt-4 text-lg font-semibold">
-                  {activeCallUsername || "Audio call"}
-                </p>
-
-                <p className="mt-1 text-sm text-white/70">
-                  {callStatus === "calling"
-                    ? "Calling..."
-                    : callStatus === "connecting"
-                    ? "Connecting..."
-                    : "Connected"}
-                </p>
-
-                <video ref={remoteVideoRef} autoPlay playsInline className="hidden" />
-                <video ref={localVideoRef} autoPlay muted playsInline className="hidden" />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       <Footer />
     </>

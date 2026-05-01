@@ -9,61 +9,71 @@ import Profile from "./pages/Profile";
 import TeamWorkspace from "./pages/TeamWorkspace";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
+import { CallProvider } from "./context/CallContext";
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Main />} />
-        <Route path="/browse-teams" element={<BrowseTeams />} />
+      <CallProvider>
+        <Routes>
+          <Route path="/" element={<Main />} />
+          <Route path="/browse-teams" element={<BrowseTeams />} />
 
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
 
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
-          }
-        />
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            }
+          />
 
-        <Route
-          path="/my-teams"
-          element={
-            <ProtectedRoute>
-              <MyTeams />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/my-teams"
+            element={
+              <ProtectedRoute>
+                <MyTeams />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/create-team"
-          element={
-            <ProtectedRoute>
-              <CreateTeam />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/create-team"
+            element={
+              <ProtectedRoute>
+                <CreateTeam />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route path="/teams/:teamId" element={<ProtectedRoute><TeamWorkspace /></ProtectedRoute>} />
-      </Routes>
+          <Route
+            path="/teams/:teamId"
+            element={
+              <ProtectedRoute>
+                <TeamWorkspace />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </CallProvider>
     </BrowserRouter>
   );
 }
