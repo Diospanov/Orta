@@ -183,7 +183,7 @@ export async function createTeam(teamData) {
 export async function deleteTeam(teamId) {
   const token = localStorage.getItem("token");
 
-  const response = await fetch(`${API_BASE_URL}/teams/${teamId}`, {
+  const response = await fetch(`${API_URL}/teams/${teamId}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`,
