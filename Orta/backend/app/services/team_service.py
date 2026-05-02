@@ -401,6 +401,36 @@ class TeamService:
         await db.refresh(join_request)
 
         return {"message": "Join request sent", "join_request": join_request}
+    
+
+    async def delete_team(
+        self,
+        db: AsyncSession,
+        current_user: User,
+        team_id: int,
+    ):
+        result = await db.execute(
+            select(Team).where(Team.id == team_id)
+        )
+        team = result.scalar_one_or_none()
+
+        if not team:
+            raise HTTPException(
+                status_code=404,
+                detail="Team not found"
+            )
+
+        if team.owner_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Only the team owner can delete this team"
+            )
+
+        await db.delete(team)
+        await db.commit()
+
+        return None
+
 
     async def leave_team(self, db: AsyncSession, current_user: User, team_id: int):
         team = await self._get_team_model(db, team_id)

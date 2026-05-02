@@ -179,6 +179,26 @@ export async function createTeam(teamData) {
   return data;
 }
 
+
+export async function deleteTeam(teamId) {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_BASE_URL}/teams/${teamId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.detail || "Failed to delete team");
+  }
+
+  return true;
+}
+
+
 export async function getTeamById(teamId) {
   const token = localStorage.getItem("token");
 

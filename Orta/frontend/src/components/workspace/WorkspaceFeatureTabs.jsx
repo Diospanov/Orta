@@ -17,8 +17,10 @@ import {
   transferTeamOwnership,
   deleteTeamFile, 
   getTeamFiles, 
-  uploadTeamFile 
+  uploadTeamFile,
+  deleteTeam
 } from "../../api";
+import { useNavigate } from "react-router-dom";
 
 function formatDateTime(value) {
   if (!value) return "Not set";
@@ -950,10 +952,14 @@ export function SettingsTab({
       : "",
   });
 
+  const navigate = useNavigate();
   const [savingTeam, setSavingTeam] = useState(false);
   const [teamError, setTeamError] = useState("");
   const [teamSuccess, setTeamSuccess] = useState("");
   const [memberActionId, setMemberActionId] = useState(null);
+  
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     setFormData({
@@ -1084,6 +1090,27 @@ export function SettingsTab({
       alert(error.message || "Failed to remove member");
     } finally {
       setMemberActionId(null);
+    }
+  };
+
+  const handleDeleteTeam = async () => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${team.name}"? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeleteLoading(true);
+      setDeleteError("");
+
+      await deleteTeam(teamId);
+
+      navigate("/my-teams", { replace: true });
+    } catch (error) {
+      setDeleteError(error.message || "Failed to delete team");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -1354,6 +1381,29 @@ export function SettingsTab({
             })
           )}
         </div>
+      </Card>
+
+      <Card className="mt-5 border border-red-400/40 bg-red-500/10">
+        <h2 className="text-2xl font-bold text-red-100">Danger Zone</h2>
+
+        <p className="mt-3 text-sm text-red-100/80">
+          Deleting this team will permanently remove the team. This action cannot be undone.
+        </p>
+
+        {deleteError && (
+          <p className="mt-4 rounded-xl bg-red-500/20 p-3 text-sm text-red-100">
+            {deleteError}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={handleDeleteTeam}
+          disabled={deleteLoading}
+          className="mt-5 rounded-xl bg-red-600 px-5 py-3 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {deleteLoading ? "Deleting..." : "Delete Team"}
+        </button>
       </Card>
     </>
   );

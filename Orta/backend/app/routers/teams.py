@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db, async_session
 from app.core.ws_manager import team_chat_manager
@@ -67,6 +67,17 @@ async def update_team(
     current_user: Annotated[User, Depends(get_current_user)],
 ):
     return await team_service.update_team(db, current_user, team_id, data)
+
+
+@router.delete("/{team_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_team(
+    team_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    await team_service.delete_team(db, current_user, team_id)
+    return None
+
 
 @router.post("/{team_id}/join")
 async def join_team(
