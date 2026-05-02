@@ -1012,11 +1012,23 @@ export function SettingsTab({
     }
   };
 
-  const handleRoleChange = async (memberId, newRole) => {
-    try {
-      setMemberActionId(memberId);
+  const getMemberUserId = (member) => {
+    const memberUserId = Number(member.user_id ?? member.user?.id);
 
-      await updateTeamMemberRole(teamId, memberId, newRole);
+    if (!memberUserId) {
+      throw new Error("Member user id is missing.");
+    }
+
+    return memberUserId;
+  };
+
+  const handleRoleChange = async (member, newRole) => {
+    try {
+      const memberUserId = getMemberUserId(member);
+
+      setMemberActionId(member.id);
+
+      await updateTeamMemberRole(teamId, memberUserId, newRole);
 
       onTeamUpdated?.();
     } catch (error) {
@@ -1036,9 +1048,11 @@ export function SettingsTab({
     if (!confirmed) return;
 
     try {
+      const memberUserId = getMemberUserId(member);
+
       setMemberActionId(member.id);
 
-      await transferTeamOwnership(teamId, member.id);
+      await transferTeamOwnership(teamId, memberUserId);
 
       alert("Ownership transferred successfully.");
       onTeamUpdated?.();
@@ -1049,17 +1063,21 @@ export function SettingsTab({
     }
   };
 
-  const handleRemoveMember = async (memberId, username) => {
+  const handleRemoveMember = async (member) => {
+    const username = member.username || member.user?.username || "this member";
+
     const confirmed = window.confirm(
-      `Remove ${username || "this member"} from the team?`
+      `Remove ${username} from the team?`
     );
 
     if (!confirmed) return;
 
     try {
-      setMemberActionId(memberId);
+      const memberUserId = getMemberUserId(member);
 
-      await removeTeamMember(teamId, memberId);
+      setMemberActionId(member.id);
+
+      await removeTeamMember(teamId, memberUserId);
 
       onTeamUpdated?.();
     } catch (error) {
@@ -1304,7 +1322,7 @@ export function SettingsTab({
                         value={member.role || "member"}
                         disabled={memberActionId === member.id}
                         onChange={(e) =>
-                          handleRoleChange(member.id, e.target.value)
+                          handleRoleChange(member, e.target.value)
                         }
                         className="rounded-xl border border-white/20 bg-[#0b6f95] px-3 py-2 text-sm text-white outline-none"
                       >
@@ -1324,7 +1342,7 @@ export function SettingsTab({
                       <button
                         type="button"
                         disabled={memberActionId === member.id}
-                        onClick={() => handleRemoveMember(member.id, username)}
+                        onClick={() => handleRemoveMember(member)}
                         className="rounded-xl bg-red-500/20 px-4 py-2 text-sm text-red-100 hover:bg-red-500/35 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         Remove
